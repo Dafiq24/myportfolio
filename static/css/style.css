@@ -6,11 +6,11 @@
 
 :root {
     --ink: #1c1917;
-    --paper: #faf6f0;
-    --accent: #d95d39;
-    --accent-dark: #a8442a;
-    --line: #e3d9c9;
-    --text-muted: #6b6459;
+    --paper: rgb(255, 0, 0);
+    --accent: #102e92;
+    --accent-dark: #2e2d30;
+    --line: #00ff62;
+    --text-muted: #00ffdd;
     --radius: 4px;
 }
 
@@ -61,7 +61,7 @@ h1, .brand {
 }
 
 .hero {
-     padding: 4.5rem 0 5rem;
+    padding: 4.5rem 0 5rem;
 }
 
 .hero-grid {
