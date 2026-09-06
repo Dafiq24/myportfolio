@@ -54,7 +54,19 @@ Setelah setiap perubahan penting, saya menjalankan pemeriksaan Django menggunaka
 
 Dalam proses perancangan dan penulisan ini saya menggunakan bantuan AI, yaitu Gemini untuk membantu menemukan solusi cache-busting pada tahap awal dan Codex untuk membantu menginterpretasikan kebutuhan desain, menyusun struktur semantik section Skills, menyesuaikan CSS responsif, serta melakukan pemeriksaan teknis. Setiap detail teknis tetap saya evaluasi melalui tampilan website secara langsung dan saya mencoba untuk mengubah tampilan lanjutan secara mandiri apabila ukuran, jarak, warna, atau susunan elemen belum sesuai dengan preferensi saya.
 
+(17.00 - 20.32 9/6/2026)
+Setelah bagian Profile dan Skills dirasa sudah cukup aman, saya melanjutkan pengembangan ke section **Experience** yang diletakkan tepat setelah Profile. Isi pengalamannya saya ambil dari CV pribadi agar informasi yang dicantumkan tetap relevan dan tidak dilebih-lebihkan. Pengalaman tersebut kemudian disusun dari yang terbaru dalam bentuk timeline, lengkap dengan periode, posisi, organisasi, deskripsi kontribusi, dan beberapa tag kemampuan yang berkaitan.
+
+Saya menggunakan elemen `<article>` untuk setiap pengalaman dan membuat garis vertikal beserta titik penanda supaya urutan waktunya lebih gampang dipahami. Ketika card disorot, hanya border dan bayangannya yang berubah, sedangkan titik timeline tetap diam agar tampilannya tidak terasa goyang. Jarak antara Profile, judul Experience, dan timeline juga saya rapatkan lagi supaya tidak meninggalkan space kosong yang terlalu luas.
+
+Di sebelah timeline, saya menambahkan bagian **Moments Behind the Work** sebagai tempat dokumentasi kegiatan ataupun bukti keikutsertaan baik dalam organisasi maupun kepanitiaan. Bagian ini menggunakan `<aside>` karena fungsinya sebagai informasi visual pendukung dari pengalaman utama. Saya menyediakan total lima bingkai foto dengan placeholder sementara karena file dokumentasinya akan saya tambahkan sendiri di akhir penyelesaian tugas ini. Pada tampilan mobile, galeri tersebut otomatis berpindah ke bawah timeline agar ukuran teks dan fotonya tetap nyaman dilihat.
+
+Setiap bingkai juga sudah diberikan fitur lightbox dengan HTML dan CSS saja. Jadi ketika sebuah foto ditekan, dokumentasinya dapat muncul lebih besar di tengah layar dengan background gelap, lalu ditutup kembali melalui tombol `×` atau area di luarnya. Fitur ini dibuat menggunakan selector `:target`, sehingga masih sesuai dengan batasan Tugas 1 yang belum menggunakan JavaScript. Sampai tahap ini, section Experience, timeline, galeri lima foto, dan interaksi lightbox sudah berhasil dijalankan tanpa error melalui pemeriksaan Django.
+
 ### CATATAN:
+
+#### Mengaktifkan Environment dan Server Django Kembali
+
 Kadangkala laptop saya dapat mati sendiri tanpa ada aba-aba indikasi persentase baterai yang akurat sehingga saya ingin memberikan instruksi agar website saya ini bisa berfungsi dan ada tampilannya lagi dengan beberapa perintah berikut.
 
 - Buka terminal pada VSCode/Powershell dengan shortcut: Ctrl + ~
@@ -62,6 +74,33 @@ Kadangkala laptop saya dapat mati sendiri tanpa ada aba-aba indikasi persentase 
 - Jalankan server Django dengan perintah: python manage.py runserver
 - Terminal akan memproses perancangan keterangan sinkronisasi website saya dengan server Django kembali
 - Selesai
+
+##### Mengakses Website melalui Mobile
+
+Untuk mengecek apakah tampilan website saya sudah responsive di perangkat mobile, laptop dan HP harus terhubung ke jaringan Wi-Fi yang sama. Setelah itu, saya dapat melihat IPv4 laptop melalui terminal dengan perintah:
+
+```powershell
+ipconfig | findstr /i "IPv4"
+```
+
+Alamat IPv4 yang muncul kemudian ditambahkan sementara ke bagian `ALLOWED_HOSTS` pada `portofolio/settings.py`. Sebagai contoh, apabila IP laptop saya adalah `192.168.0.4`, konfigurasinya menjadi:
+
+```python (file: settings.py)
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "192.168.0.4",
+    "sultan-noor-myportofolio.pws.cs.ui.ac.id",
+]
+```
+
+Selanjutnya, server Django dijalankan agar dapat menerima koneksi dari perangkat lain dalam jaringan yang sama:
+
+```powershell
+python manage.py runserver 192.168.0.4:8000
+```
+
+Terakhir, saya membuka `http://192.168.0.4:8000` melalui browser HP dengan menyesuaikan alamatnya berdasarkan IPv4 laptop yang sedang digunakan. Jika Windows Firewall meminta izin, akses cukup diberikan untuk **Private Network**. IP lokal dapat berubah ketika berganti atau menyambungkan ulang Wi-Fi, jadi saya perlu menjalankan `ipconfig` lagi apabila alamat sebelumnya sudah tidak dapat digunakan.
 
 
 ### PERTANYAAN REFLEKTIF
