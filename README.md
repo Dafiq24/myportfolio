@@ -63,6 +63,15 @@ Di sebelah timeline, saya menambahkan bagian **Moments Behind the Work** sebagai
 
 Setiap bingkai juga sudah diberikan fitur lightbox dengan HTML dan CSS saja. Jadi ketika sebuah foto ditekan, dokumentasinya dapat muncul lebih besar di tengah layar dengan background gelap, lalu ditutup kembali melalui tombol `×` atau area di luarnya. Fitur ini dibuat menggunakan selector `:target`, sehingga masih sesuai dengan batasan Tugas 1 yang belum menggunakan JavaScript. Sampai tahap ini, section Experience, timeline, galeri lima foto, dan interaksi lightbox sudah berhasil dijalankan tanpa error melalui pemeriksaan Django.
 
+(11.00 - 12.45 9/7/2026)
+Setelah section Experience selesai, saya melanjutkan pengembangan ke section **Achievements & Certifications** yang ditempatkan sebelum Skills & Tools. Saya menyeleksi sertifikat dari koleksi pribadi dan tidak menampilkan semuanya agar isi portofolio tetap relevan dan tidak terasa penuh. Enam sertifikat yang dipilih adalah Finalist ShARE Global Case Summit 2026, Gemini Certified Student, Super Member of Data Science GDGoC UI, Java Collections Framework dari Udemy, GDP Labs: AI Engineer Session, dan HTML Certificate of Completion dari Mimo. Sertifikat ShARE Global Case Summit saya jadikan pencapaian utama karena menunjukkan hasil sebagai finalis, sedangkan sertifikat lainnya menjadi bukti kegiatan belajar pada bidang teknologi, data, AI, dan web development.
+
+Pada `index.html`, setiap sertifikat disusun sebagai card yang memuat gambar, kategori, judul, penerbit, dan tahun. Card tersebut ditempatkan dalam carousel horizontal yang bergerak otomatis dari kiri ke kanan menggunakan animasi CSS. Isi carousel dibuat dalam dua kelompok yang sama agar pergerakannya dapat berulang dengan mulus. Ketika card disorot, ukurannya sedikit membesar tanpa keluar dari jalur pergerakan. Sertifikat juga dapat ditekan untuk membuka preview yang lebih besar di tengah layar melalui lightbox berbasis selector `:target`, sehingga fitur ini tetap dapat berjalan tanpa JavaScript.
+
+File sertifikat PDF yang terpilih diubah menjadi gambar preview dan diletakkan pada folder `static/img/certificates`, sedangkan file sumber aslinya tetap tidak diubah. Ukuran gambar, bingkai, padding, jarak antarkartu, dan bayangan kemudian saya rapatkan kembali supaya carousel terlihat lebih compact. Pada tampilan mobile, animasi otomatis dihentikan dan carousel dapat digeser secara horizontal menggunakan jari agar pengunjung tetap dapat mengontrol sertifikat yang ingin dilihat.
+
+Warna section ini memadukan palet biru sebelumnya dengan tambahan dusty pink, blush, soft blue, slate blue, dan deep navy. Deep navy digunakan sebagai background utama, sedangkan pink dan soft blue digunakan secara terbatas pada border, bayangan, serta efek hover. Hasilnya, section Certifications memiliki tampilan yang sedikit berbeda dari Experience dan Skills, tetapi masih terasa menyatu dengan identitas visual keseluruhan website.
+
 ### CATATAN:
 
 #### Mengaktifkan Environment dan Server Django Kembali
