@@ -84,6 +84,7 @@ h3,
 
 #profile,
 #experience,
+#certifications,
 #skills {
     scroll-margin-top: 5rem;
 }
@@ -482,6 +483,137 @@ h3,
     text-decoration: none;
 }
 
+/* Certifications carousel */
+.certifications-section {
+    --certificate-pink: #c38eb4;
+    --certificate-blush: #e1cbd7;
+    --certificate-blue: #86a8cf;
+    --certificate-slate: #26425a;
+    --certificate-night: #0b1b2b;
+    overflow: hidden;
+    padding: clamp(2.5rem, 5vw, 4.5rem) 0;
+    color: var(--white);
+    background:
+        radial-gradient(circle at 82% 12%, rgba(195, 142, 180, 0.2), transparent 28%),
+        linear-gradient(135deg, var(--certificate-slate) 0%, var(--accent-dark) 42%, var(--certificate-night) 100%);
+    border-top: 1px solid var(--certificate-blue);
+}
+
+.certifications-heading {
+    max-width: 780px;
+    margin-bottom: 2rem;
+}
+
+.certifications-heading h2 {
+    max-width: 720px;
+}
+
+.certificate-carousel {
+    width: 100%;
+    overflow: hidden;
+    padding: 0.65rem 0 1rem;
+}
+
+.certificate-track {
+    display: flex;
+    gap: 0.85rem;
+    width: max-content;
+    animation: certificate-scroll 42s linear infinite;
+    will-change: transform;
+}
+
+.certificate-set {
+    display: flex;
+    gap: 0.85rem;
+}
+
+.certificate-card {
+    position: relative;
+    display: grid;
+    grid-template-rows: 170px auto;
+    width: 310px;
+    flex: 0 0 auto;
+    overflow: hidden;
+    color: var(--ink);
+    background-color: var(--certificate-blush);
+    border: 2px solid var(--certificate-blue);
+    border-radius: var(--radius);
+    box-shadow: 6px 6px 0 var(--certificate-pink);
+    text-decoration: none;
+    transform-origin: center;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.certificate-card-featured {
+    width: 350px;
+    border-color: var(--certificate-pink);
+}
+
+.certificate-card:hover,
+.certificate-card:focus-visible {
+    z-index: 2;
+    border-color: var(--certificate-blush);
+    box-shadow: 7px 7px 0 var(--certificate-blue);
+    transform: scale(1.045);
+}
+
+.certificate-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0.3rem;
+    object-fit: contain;
+    background-color: var(--white);
+}
+
+.certificate-details {
+    display: grid;
+    gap: 0.1rem;
+    padding: 0.6rem 0.75rem 0.7rem;
+}
+
+.certificate-details strong {
+    font-family: "Space Grotesk", -apple-system, sans-serif;
+    font-size: 0.92rem;
+    line-height: 1.25;
+}
+
+.certificate-details > span:last-child {
+    color: var(--certificate-slate);
+    font-size: 0.72rem;
+}
+
+.certificate-type {
+    width: fit-content;
+    color: var(--certificate-slate);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.certificate-lightbox-content {
+    width: min(1050px, 100%);
+}
+
+.certificate-lightbox-content img {
+    display: block;
+    width: 100%;
+    max-height: 72vh;
+    object-fit: contain;
+    background-color: var(--white);
+}
+
+@keyframes certificate-scroll {
+    from {
+        transform: translateX(calc(-50% - 0.425rem));
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
 /* Skills section */
 .skills-section {
     min-height: calc(100vh - 73px);
@@ -690,6 +822,7 @@ h3,
 
     #profile,
     #experience,
+    #certifications,
     #skills {
         scroll-margin-top: 8rem;
     }
@@ -697,6 +830,55 @@ h3,
     .skills-grid {
         grid-template-columns: 1fr;
         gap: 0.7rem;
+    }
+
+    .certifications-section {
+        padding: 2.75rem 0;
+    }
+
+    .certifications-heading {
+        margin-bottom: 1rem;
+    }
+
+    .certificate-carousel {
+        overflow-x: auto;
+        padding: 0.8rem 1.25rem 1.25rem;
+        scroll-padding-inline: 1.25rem;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: thin;
+    }
+
+    .certificate-track {
+        animation: none;
+    }
+
+    .certificate-set[aria-hidden="true"] {
+        display: none;
+    }
+
+    .certificate-set {
+        gap: 0.7rem;
+    }
+
+    .certificate-card,
+    .certificate-card-featured {
+        grid-template-rows: 155px auto;
+        width: min(78vw, 300px);
+        box-shadow: 5px 5px 0 var(--certificate-pink);
+        scroll-snap-align: center;
+    }
+
+    .certificate-card:hover,
+    .certificate-card:focus-visible {
+        transform: none;
+    }
+
+    .certificate-details {
+        padding: 0.7rem 0.8rem 0.8rem;
+    }
+
+    .certificate-lightbox-content img {
+        max-height: 68vh;
     }
 
     .experience-layout {
@@ -828,7 +1010,13 @@ h3,
     }
 
     .experience-item,
-    .lightbox {
+    .lightbox,
+    .certificate-card {
         transition: none;
+    }
+
+    .certificate-track {
+        animation: none;
+        transform: none;
     }
 }

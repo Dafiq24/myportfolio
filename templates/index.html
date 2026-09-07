@@ -21,6 +21,7 @@
             <nav>
                 <a href="#profile">Profile</a>
                 <a href="#experience">Experience</a>
+                <a href="#certifications">Certifications</a>
                 <a href="#skills">Skills</a>
             </nav>
         </div>
@@ -221,6 +222,162 @@
                     <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
                     <div class="lightbox-placeholder" aria-hidden="true">Photo 05</div>
                     <figcaption>Activity documentation &middot; Replace this caption</figcaption>
+                </figure>
+            </div>
+        </section>
+
+        <!-- Selected achievements and learning credentials. -->
+        <section class="certifications-section" id="certifications">
+            <div class="container">
+                <div class="section-heading certifications-heading">
+                    <p class="section-kicker">Achievements &amp; Certifications</p>
+                    <h2>Milestones worth sharing</h2>
+                    <p>
+                        A curated collection of achievements and learning experiences
+                        across business, data, artificial intelligence, and web development.
+                    </p>
+                </div>
+            </div>
+
+            <div class="certificate-carousel" aria-label="Selected certificates">
+                <div class="certificate-track">
+                    <div class="certificate-set">
+                        <a class="certificate-card certificate-card-featured" href="#certificate-sgcs">
+                            <img src="{% static 'img/certificates/sgcs-finalist.jpg' %}" alt="ShARE Global Case Summit 2026 finalist certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Achievement</span>
+                                <strong>Finalist &middot; ShARE Global Case Summit</strong>
+                                <span>ShARE ITB, DWDG UGM &amp; ShARE UB &middot; 2026</span>
+                            </span>
+                        </a>
+
+                        <a class="certificate-card" href="#certificate-gemini">
+                            <img src="{% static 'img/certificates/gemini-certified-student.jpg' %}" alt="Gemini Certified Student certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Technology</span>
+                                <strong>Gemini Certified Student</strong>
+                                <span>Google for Education &middot; 2026</span>
+                            </span>
+                        </a>
+
+                        <a class="certificate-card" href="#certificate-data-science">
+                            <img src="{% static 'img/certificates/super-member-data-science.png' %}" alt="Super Member of Data Science certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Data</span>
+                                <strong>Super Member of Data Science</strong>
+                                <span>GDGoC Universitas Indonesia &middot; 2026</span>
+                            </span>
+                        </a>
+
+                        <a class="certificate-card" href="#certificate-java">
+                            <img src="{% static 'img/certificates/java-collections.png' %}" alt="Java Collections Framework course certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Course</span>
+                                <strong>Java Collections Framework</strong>
+                                <span>Udemy &middot; 2026</span>
+                            </span>
+                        </a>
+
+                        <a class="certificate-card" href="#certificate-ai-engineer">
+                            <img src="{% static 'img/certificates/ai-engineer-session.jpg' %}" alt="GDP Labs AI Engineer Session certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Workshop</span>
+                                <strong>GDP Labs: AI Engineer Session</strong>
+                                <span>RISTEK Fasilkom UI &amp; GDP Labs &middot; 2026</span>
+                            </span>
+                        </a>
+
+                        <a class="certificate-card" href="#certificate-html">
+                            <img src="{% static 'img/certificates/mimo-html.jpg' %}" alt="Mimo HTML course certificate">
+                            <span class="certificate-details">
+                                <span class="certificate-type">Course</span>
+                                <strong>HTML Certificate of Completion</strong>
+                                <span>Mimo &middot; 2025</span>
+                            </span>
+                        </a>
+                    </div>
+
+                    <!-- A hidden duplicate keeps the desktop carousel moving seamlessly. -->
+                    <div class="certificate-set" aria-hidden="true">
+                        <a class="certificate-card certificate-card-featured" href="#certificate-sgcs" tabindex="-1">
+                            <img src="{% static 'img/certificates/sgcs-finalist.jpg' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Achievement</span><strong>Finalist &middot; ShARE Global Case Summit</strong><span>ShARE ITB, DWDG UGM &amp; ShARE UB &middot; 2026</span></span>
+                        </a>
+                        <a class="certificate-card" href="#certificate-gemini" tabindex="-1">
+                            <img src="{% static 'img/certificates/gemini-certified-student.jpg' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Technology</span><strong>Gemini Certified Student</strong><span>Google for Education &middot; 2026</span></span>
+                        </a>
+                        <a class="certificate-card" href="#certificate-data-science" tabindex="-1">
+                            <img src="{% static 'img/certificates/super-member-data-science.png' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Data</span><strong>Super Member of Data Science</strong><span>GDGoC Universitas Indonesia &middot; 2026</span></span>
+                        </a>
+                        <a class="certificate-card" href="#certificate-java" tabindex="-1">
+                            <img src="{% static 'img/certificates/java-collections.png' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Course</span><strong>Java Collections Framework</strong><span>Udemy &middot; 2026</span></span>
+                        </a>
+                        <a class="certificate-card" href="#certificate-ai-engineer" tabindex="-1">
+                            <img src="{% static 'img/certificates/ai-engineer-session.jpg' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Workshop</span><strong>GDP Labs: AI Engineer Session</strong><span>RISTEK Fasilkom UI &amp; GDP Labs &middot; 2026</span></span>
+                        </a>
+                        <a class="certificate-card" href="#certificate-html" tabindex="-1">
+                            <img src="{% static 'img/certificates/mimo-html.jpg' %}" alt="">
+                            <span class="certificate-details"><span class="certificate-type">Course</span><strong>HTML Certificate of Completion</strong><span>Mimo &middot; 2025</span></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-sgcs" role="dialog" aria-modal="true" aria-label="ShARE Global Case Summit finalist certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/sgcs-finalist.jpg' %}" alt="ShARE Global Case Summit 2026 finalist certificate">
+                    <figcaption>Finalist &middot; ShARE Global Case Summit &middot; 2026</figcaption>
+                </figure>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-gemini" role="dialog" aria-modal="true" aria-label="Gemini Certified Student certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/gemini-certified-student.jpg' %}" alt="Gemini Certified Student certificate">
+                    <figcaption>Gemini Certified Student &middot; Google for Education &middot; 2026</figcaption>
+                </figure>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-data-science" role="dialog" aria-modal="true" aria-label="Super Member of Data Science certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/super-member-data-science.png' %}" alt="Super Member of Data Science certificate">
+                    <figcaption>Super Member of Data Science &middot; GDGoC UI &middot; 2026</figcaption>
+                </figure>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-java" role="dialog" aria-modal="true" aria-label="Java Collections Framework certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/java-collections.png' %}" alt="Java Collections Framework course certificate">
+                    <figcaption>Java Collections Framework, Generics, Lambdas &amp; Stream API &middot; Udemy &middot; 2026</figcaption>
+                </figure>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-ai-engineer" role="dialog" aria-modal="true" aria-label="GDP Labs AI Engineer Session certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/ai-engineer-session.jpg' %}" alt="GDP Labs AI Engineer Session certificate">
+                    <figcaption>GDP Labs: AI Engineer Session &middot; RISTEK Fasilkom UI &middot; 2026</figcaption>
+                </figure>
+            </div>
+
+            <div class="lightbox certificate-lightbox" id="certificate-html" role="dialog" aria-modal="true" aria-label="Mimo HTML certificate">
+                <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                <figure class="lightbox-content certificate-lightbox-content">
+                    <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                    <img src="{% static 'img/certificates/mimo-html.jpg' %}" alt="Mimo HTML course certificate">
+                    <figcaption>HTML Certificate of Completion &middot; Mimo &middot; 2025</figcaption>
                 </figure>
             </div>
         </section>
