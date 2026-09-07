@@ -37,7 +37,11 @@ SECRET_KEY = os.getenv(
 # SECURITY WARNING: never enable debug mode in production.
 DEBUG = not PRODUCTION
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "192.168.0.4", "sultan-noor-myportofolio.pws.cs.ui.ac.id"]
+if PRODUCTION:
+    ALLOWED_HOSTS = ["sultan-noor-myportofolio.pws.cs.ui.ac.id"]
+else:
+    # Accept changing private-network IP addresses during local mobile testing.
+    ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
