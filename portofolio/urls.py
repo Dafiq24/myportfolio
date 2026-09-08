@@ -16,10 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from portofolio.views import landing_page
 
 urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
-    path('admin/', admin.site.urls),
-    path('', landing_page, name='landing_page'),
+    path("admin/", admin.site.urls),
+    path("", include("main.urls")),
 ]

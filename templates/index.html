@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sultan Noor Dafiq - Portfolio</title>
+    <title>{{ name }} - Portfolio</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -17,10 +17,10 @@
 <body>
     <header class="site-header">
         <div class="container">
-            <a href="#profile" class="brand">Sultan Noor Dafiq</a>
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
             <nav>
-                <a href="#profile">Profile</a>
-                <a href="#experience">Experience</a>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
                 <a href="#certifications">Certifications</a>
                 <a href="#skills">Skills</a>
                 <a href="#contact">Contact</a>
@@ -34,27 +34,24 @@
                     <p class="hero-kicker">
                         Information Systems &middot; Universitas Indonesia
                     </p>
-                    <h1>Sultan Noor Dafiq</h1>
+                    <h1>{{ name }}</h1>
                 </div>
                 <div class="hero-photo">
                     <div class="photo-block"></div>
-                    <img class="avatar" src="{% static 'img/Dafiq.jpg' %}" alt="Photo of Sultan Noor Dafiq">
+                    <img class="avatar" src="{% static 'img/Dafiq.jpg' %}" alt="Photo of {{ name }}">
                 </div>
                 <div class="hero-details">
                     <p class="bio">
-                        Information Systems undergraduate at Universitas Indonesia
-                        interested in solving business challenges through strategic
-                        thinking, data-driven analysis, and technology. Experienced in
-                        educational programs, student advocacy, and project coordination.
+                        {{ bio }}
                     </p>
                     <dl class="meta-list">
                         <div class="meta-row">
                             <dt>NPM</dt>
-                            <dd>2506600713</dd>
+                            <dd>{{ npm }}</dd>
                         </div>
                         <div class="meta-row">
                             <dt>Program</dt>
-                            <dd>Bachelor's Program in Information Systems</dd>
+                            <dd>{{ study_program }}</dd>
                         </div>
                     </dl>
                 </div>
@@ -62,166 +59,6 @@
         </section>
 
         <!-- Experience timeline and supporting activity documentation. -->
-        <section class="experience-section" id="experience">
-            <div class="container">
-                <div class="section-heading experience-heading">
-                    <p class="section-kicker">Experience</p>
-                    <h2>Learning through real responsibilities</h2>
-                    <p>
-                        A collection of roles that shaped how I communicate,
-                        collaborate, and turn ideas into meaningful contributions.
-                    </p>
-                </div>
-
-                <div class="experience-layout">
-                    <div class="experience-timeline">
-                        <article class="experience-item">
-                            <div class="timeline-marker" aria-hidden="true"></div>
-                            <p class="experience-period">March 2026 - Present</p>
-                            <h3>HR Software Engineering Academy</h3>
-                            <p class="experience-organization">COMPFEST 18</p>
-                            <p class="experience-description">
-                                Supported staff recruitment communications and coordinated
-                                administrative screening, interviews, and onboarding.
-                            </p>
-                            <ul class="experience-tags" aria-label="Related skills">
-                                <li>Recruitment</li>
-                                <li>Coordination</li>
-                                <li>Communication</li>
-                            </ul>
-                        </article>
-
-                        <article class="experience-item">
-                            <div class="timeline-marker" aria-hidden="true"></div>
-                            <p class="experience-period">January 2026 - June 2026</p>
-                            <h3>Super Member</h3>
-                            <p class="experience-organization">Google Developer Groups on Campus UI</p>
-                            <p class="experience-description">
-                                Practiced data preparation, exploratory data analysis,
-                                and basic feature engineering with Python, Pandas, and NumPy.
-                            </p>
-                            <ul class="experience-tags" aria-label="Related skills">
-                                <li>Python</li>
-                                <li>Data Analysis</li>
-                                <li>Team Learning</li>
-                            </ul>
-                        </article>
-
-                        <article class="experience-item">
-                            <div class="timeline-marker" aria-hidden="true"></div>
-                            <p class="experience-period">January 2026 - March 2026</p>
-                            <h3>Teaching Staff</h3>
-                            <p class="experience-organization">BETIS Fasilkom UI</p>
-                            <p class="experience-description">
-                                Guided the learning process of more than 100 prospective
-                                UTBK participants using presentation materials and quizzes.
-                            </p>
-                            <ul class="experience-tags" aria-label="Related skills">
-                                <li>Teaching</li>
-                                <li>Content Development</li>
-                                <li>Public Communication</li>
-                            </ul>
-                        </article>
-
-                        <article class="experience-item">
-                            <div class="timeline-marker" aria-hidden="true"></div>
-                            <p class="experience-period">September 2025 - December 2025</p>
-                            <h3>Advocacy &amp; Student Welfare Intern</h3>
-                            <p class="experience-organization">BEM Fasilkom UI</p>
-                            <p class="experience-description">
-                                Coordinated an interactive mental-health activity for more
-                                than 100 participants and contributed to educational content
-                                and student aspiration outreach.
-                            </p>
-                            <ul class="experience-tags" aria-label="Related skills">
-                                <li>Student Advocacy</li>
-                                <li>Content Development</li>
-                                <li>User Empathy</li>
-                            </ul>
-                        </article>
-                    </div>
-
-                    <aside class="experience-gallery" aria-labelledby="gallery-title">
-                        <div class="gallery-intro">
-                            <p class="section-kicker">Documentation</p>
-                            <h3 id="gallery-title">Moments behind the work</h3>
-                        </div>
-
-                        <!-- Replace each placeholder with an activity image when available. -->
-                        <div class="gallery-grid">
-                            <a class="gallery-frame gallery-frame-large" href="#experience-photo-3">
-                                <img src="{% static 'img/SBFAdkesma.jpeg' %}" alt="Student Welfare activity with BEM Fasilkom UI">
-                                <span class="gallery-caption">Adkesma BEM Fasilkom UI</span>
-                            </a>
-                            <a class="gallery-frame" href="#experience-photo-2">
-                                <span class="gallery-placeholder">Coming soon</span>
-                                <span class="gallery-caption">GDG on Campus UI</span>
-                            </a>
-                            <a class="gallery-frame" href="#experience-photo-1">
-                                <span class="gallery-placeholder">Coming soon</span>
-                                <span class="gallery-caption">BETIS Fasilkom UI</span>
-                            </a>
-                            <a class="gallery-frame" href="#experience-photo-4">
-                                <span class="gallery-placeholder">Coming soon</span>
-                                <span class="gallery-caption">Another Activity</span>
-                            </a>
-                            <a class="gallery-frame" href="#experience-photo-5">
-                                <span class="gallery-placeholder">Coming soon</span>
-                                <span class="gallery-caption">Another Activity</span>
-                            </a>
-                        </div>
-                    </aside>
-                </div>
-            </div>
-
-            <!-- CSS-only lightboxes. Replace the placeholders with the same activity images. -->
-            <div class="lightbox" id="experience-photo-1" role="dialog" aria-modal="true" aria-label="BETIS Fasilkom UI documentation">
-                <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a>
-                <figure class="lightbox-content">
-                    <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
-                    <div class="lightbox-placeholder">Documentation coming soon</div>
-                    <figcaption>Teaching Staff &middot; BETIS Fasilkom UI &middot; 2026</figcaption>
-                </figure>
-            </div>
-
-            <div class="lightbox" id="experience-photo-2" role="dialog" aria-modal="true" aria-label="GDG on Campus UI documentation">
-                <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a>
-                <figure class="lightbox-content">
-                    <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
-                    <div class="lightbox-placeholder">Documentation coming soon</div>
-                    <figcaption>Super Member &middot; GDG on Campus UI &middot; 2026</figcaption>
-                </figure>
-            </div>
-
-            <div class="lightbox" id="experience-photo-3" role="dialog" aria-modal="true" aria-label="BEM Fasilkom UI documentation">
-                <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a>
-                <figure class="lightbox-content">
-                    <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
-                    <img class="lightbox-image" src="{% static 'img/SBFAdkesma.jpeg' %}" alt="Student Welfare activity with BEM Fasilkom UI">
-                    <figcaption>Advocacy &amp; Student Welfare &middot; BEM Fasilkom UI &middot; 2025</figcaption>
-                </figure>
-            </div>
-
-            <div class="lightbox" id="experience-photo-4" role="dialog" aria-modal="true" aria-label="Activity documentation photo four">
-                <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a>
-                <figure class="lightbox-content">
-                    <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
-                    <div class="lightbox-placeholder">Documentation coming soon</div>
-                    <figcaption>Activity documentation &middot; Replace this caption</figcaption>
-                </figure>
-            </div>
-
-            <div class="lightbox" id="experience-photo-5" role="dialog" aria-modal="true" aria-label="Activity documentation photo five">
-                <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a>
-                <figure class="lightbox-content">
-                    <a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a>
-                    <div class="lightbox-placeholder">Documentation coming soon</div>
-                    <figcaption>Activity documentation &middot; Replace this caption</figcaption>
-                </figure>
-            </div>
-        </section>
-
-        <!-- Selected achievements and learning credentials. -->
         <section class="certifications-section" id="certifications">
             <div class="container">
                 <div class="section-heading certifications-heading">
@@ -519,7 +356,7 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>&copy; 2026 Sultan Noor Dafiq. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
     </footer>
 </body>
