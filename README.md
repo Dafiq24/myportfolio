@@ -1,12 +1,29 @@
+# My Portfolio - Sultan Noor Dafiq
+
 Nama : Sultan Noor Dafiq
 
 NPM : 2506600713
 
 Kelas : PBP E
 
+## Daftar Isi
+
+- [Tugas Individu 1](#tugas-individu-1)
+  - [Dokumentasi Tugas 1](#dokumentasi-tugas-1)
+  - [Catatan Tugas 1](#catatan-tugas-1)
+  - [Transparansi Penggunaan AI Tugas 1](#transparansi-penggunaan-ai-tugas-1)
+  - [Pertanyaan Reflektif Tugas 1](#pertanyaan-reflektif-tugas-1)
+  - [Tugas 1](#tugas-1)
+- [Tugas Individu 2](#tugas-individu-2)
+  - [Dokumentasi Tugas 2](#dokumentasi-tugas-2)
+  - [Catatan Tugas 2](#catatan-tugas-2)
+  - [Transparansi Penggunaan AI Tugas 2](#transparansi-penggunaan-ai-tugas-2)
+  - [Pertanyaan Reflektif Tugas 2](#pertanyaan-reflektif-tugas-2)
+  - [Tugas 2](#tugas-2)
+
 ## Tugas Individu 1
 
-### DOKUMENTASI KERANGKA & ALUR PERANCANGAN WEB PORTOFOLIO
+### Dokumentasi Tugas 1
 
 #### (11.27 9/2/2026)
 Sebelum melanjutkan proses desain tambahan, saya berinisasi untuk menginstal python package yang bernama "django-browser-reload" guna mempermudah pemantauan terhadap perubahan struktur ataupun tampilan pada website saya setiap kali ada proses rekayasa pada kode html ataupun css projek saya. 
@@ -83,7 +100,7 @@ Layout Contact menggunakan CSS Grid dengan empat kolom pada desktop, dua kolom p
 Pada galeri Experience, foto kegiatan Student Welfare BEM Fasilkom UI dengan nama file `SBFAdkesma.jpeg` mulai dimasukkan sebagai dokumentasi pertama. Posisi BEM Fasilkom UI ditukar dengan BETIS Fasilkom UI agar foto yang sudah tersedia menempati frame utama. Foto ditampilkan menggunakan `object-fit: cover` di dalam bingkai dan `object-fit: contain` ketika dibuka melalui lightbox. Empat bingkai lainnya tetap mempertahankan nama kegiatannya, tetapi area fotonya menampilkan tulisan "Coming soon" sampai seluruh dokumentasi siap ditambahkan. Dengan tahap ini, struktur utama website telah tersusun lengkap dari Profile, Experience, Achievements & Certifications, Skills & Tools, hingga Contact.
 
 
-### CATATAN:
+### Catatan Tugas 1
 
 #### Mengaktifkan Environment dan Server Django Kembali
 
@@ -123,14 +140,14 @@ python manage.py runserver 192.168.0.4:8000
 Terakhir, saya membuka `http://192.168.0.4:8000` melalui browser HP dengan menyesuaikan alamatnya berdasarkan IPv4 laptop yang sedang digunakan. Jika Windows Firewall meminta izin, akses cukup diberikan untuk **Private Network**. IP lokal dapat berubah ketika berganti atau menyambungkan ulang Wi-Fi, jadi saya perlu menjalankan `ipconfig` lagi apabila alamat sebelumnya sudah tidak dapat digunakan.
 
 
-### TRANSPARANSI PENGGUNAAN AI
+### Transparansi Penggunaan AI Tugas 1
 
 Dalam pengerjaan tugas ini, saya menggunakan Gemini dan Codex sebagai alat bantu diskusi serta pendamping teknis pada beberapa tahap pengembangan. Gemini membantu saya menemukan pendekatan cache-busting ketika perubahan CSS belum langsung terbaca, sedangkan Codex membantu mengembangkan alternatif struktur HTML, CSS responsif, dan pemeriksaan teknis. Saya tidak memberikan satu instruksi besar untuk menghasilkan website secara langsung. Prosesnya saya pecah menjadi banyak persoalan kecil, kemudian saya menyampaikan tujuan, referensi visual, tangkapan layar hasil implementasi, dan koreksi yang spesifik untuk setiap persoalan tersebut.
 
 Setiap saran tetap saya analisis berdasarkan kebutuhan portofolio dan hasil tampilannya. Saya menentukan sendiri urutan section, menyeleksi pengalaman dan sertifikat dari data pribadi, menyusun prioritas informasi, memilih serta memadukan palet warna, dan mengevaluasi perubahan layout pada desktop maupun mobile. Ketika hasil implementasi membuat foto terlalu besar, ruang antarelemen tidak seimbang, atau caption galeri ikut berubah, saya mengidentifikasi bagian yang bermasalah lalu mengonstruksi ulang kebutuhannya melalui koreksi yang lebih terarah. Saya juga membandingkan hasil antarukuran layar, menguji navigasi dan tautan, serta menjalankan `python manage.py check` sebelum perubahan disimpan ke Git. Oleh karena itu, bantuan AI menjadi bagian dari proses eksplorasi dan pemecahan masalah, sementara arah desain, penalaran, evaluasi, dan keputusan akhirnya tetap dibangun melalui keterlibatan aktif saya selama proses pengerjaan.
 
 
-### PERTANYAAN REFLEKTIF
+### Pertanyaan Reflektif Tugas 1
 
 1. Pada Tutorial dan Tugas 1, Anda diberi kebebasan untuk menentukan tampilan dari website portofolio Anda. Saat Anda merancang struktur HTML yang digunakan, apakah Anda menggunakan elemen semantik HTML5 seperti <section>, <article>, atau <aside>? Jika iya, bagaimana elemen tersebut membantu Anda dalam membuat static web? Jika tidak, mengapa tanpa elemen tersebut sudah memenuhi kebutuhan desain Anda?
 
@@ -138,10 +155,45 @@ Setiap saran tetap saya analisis berdasarkan kebutuhan portofolio dan hasil tamp
 
 3. Website yang Anda buat saat ini adalah static web murni. Batasan apa yang Anda rasakan saat mencoba menyajikan informasi pada portofolio Anda secara optimal? Berdasarkan batasan tersebut, fungsionalitas dinamis apa yang paling ingin Anda persiapkan dan tambahkan pada iterasi proyek selanjutnya?
 
-### RESPON PRIBADI
+### Respon Reflektif Tugas 1
 
 1. Ya, saya menggunakan elemen semantik HTML5 seperti `<header>`, `<nav>`, `<main>`, `<section>`, `<article>`, `<aside>`, dan `<footer>`. Elemen `<section>` membagi halaman menjadi Profile, Experience, Achievements & Certifications, Skills & Tools, dan Contact, sedangkan `<article>` digunakan untuk konten yang dapat berdiri sendiri seperti card pengalaman dan kategori skills. Saya juga menggunakan `<aside>` untuk galeri dokumentasi karena bagian tersebut berfungsi sebagai pendukung dari informasi utama pada Experience. Penggunaan elemen semantik membantu saya melihat website bukan hanya sebagai kumpulan `<div>`, tetapi sebagai susunan informasi yang memiliki fungsi masing-masing. Struktur kode menjadi lebih mudah dibaca, dikembangkan, dan dirawat ketika section baru ditambahkan. Walaupun website ini masih bersifat statis, struktur tersebut menjadi fondasi yang lebih baik untuk aksesibilitas dan pengembangan website dinamis pada tahap berikutnya.
 
 2. Tantangan terbesar dalam membuat tampilan responsive adalah menyadari bahwa layout desktop tidak dapat hanya diperkecil untuk digunakan pada mobile. Susunan dua kolom pada Profile, timeline dan galeri yang berdampingan pada Experience, card Skills, carousel Certifications, serta navigation bar membutuhkan perlakuan yang berbeda ketika ruang layar semakin terbatas. Pada beberapa percobaan awal, ukuran judul terlalu besar, jarak antarelemen terasa longgar, dan beberapa card menjadi terlalu sempit untuk dibaca dengan nyaman. Saya mengevaluasi setiap elemen berdasarkan keterbacaan, fungsi, dan urutan kepentingannya. Foto Profile dipindahkan ke bawah identitas pada mobile, galeri ditempatkan setelah timeline, card Skills disusun menjadi satu kolom, dan carousel Certifications diubah menjadi horizontal scrolling yang dapat digeser menggunakan jari. Ukuran font, padding, gap, serta lebar card juga disesuaikan melalui media query. Dari proses ini saya memahami bahwa responsive design bukan sekadar mengecilkan ukuran, melainkan menyusun ulang pengalaman pengguna agar informasi utama tetap mudah dipahami pada setiap perangkat.
 
 3. Batasan yang paling saya rasakan dari static web adalah seluruh konten masih ditulis langsung di dalam template HTML. Setiap kali ingin menambahkan pengalaman, sertifikat, skills, atau dokumentasi kegiatan, saya perlu membuka dan mengubah kode secara manual. Cara ini masih cukup untuk portofolio sederhana, tetapi akan menjadi kurang praktis ketika isi website terus berkembang. Bagian Contact juga belum dapat menerima data dari pengunjung karena saat ini hanya menggunakan tautan email dan media profesional. Pada iterasi berikutnya, saya ingin mengembangkan Django Admin dan contact form. Django model, database, dan Django Admin akan digunakan untuk mengelola isi Experience, Certifications, Skills, serta dokumentasi tanpa perlu menyusun ulang desain HTML setiap kali ada data baru. Setelah itu, contact form akan memungkinkan pengunjung mengirimkan nama, email, dan pesan secara langsung dengan validasi dari Django, kemudian pesannya dapat disimpan atau diteruskan ke email saya. Bagi saya, kedua fitur tersebut merupakan langkah penting untuk mengubah portofolio ini dari halaman informasi statis menjadi website yang lebih mudah dikelola oleh pemilik sekaligus lebih interaktif bagi pengunjung.
+
+
+## Tugas Individu 2
+
+### Dokumentasi Tugas 2
+
+#### (13.00 - 14.26 9/8/2026)
+Setelah menyelesaikan Tutorial 02, saya mulai menerapkan kembali alur Model-View-Template pada bagian Certifications. Saya memilih bagian ini karena enam sertifikat pilihan beserta tampilan carousel-nya sudah tersedia dari Tugas Individu 1, tetapi seluruh datanya masih ditulis langsung di dalam `index.html`. Pada tahap awal ini, fokus saya belum berada pada perubahan tampilan, melainkan pada pembentukan struktur data yang nantinya menjadi sumber informasi bagi halaman Certifications yang terpisah.
+
+Saya menambahkan model `Certification` pada aplikasi `main` dengan UUID sebagai primary key. Informasi setiap sertifikat dipisahkan ke dalam field `title`, `issuer`, `category`, `issued_year`, `image_path`, `credential_url`, `description`, dan `is_featured`. Field `category` menggunakan pilihan Achievement, Certification, Course, dan Workshop agar kategorinya konsisten, sedangkan `image_path` digunakan untuk menghubungkan data dengan gambar yang sudah tersimpan di dalam static files tanpa memindahkan aset tersebut. Saya juga menambahkan pengurutan melalui `Meta.ordering` supaya sertifikat unggulan muncul lebih dahulu, kemudian diikuti tahun terbaru dan judul secara alfabetis.
+
+Sebelum membuat migration, saya menjalankan `python manage.py check` dan melakukan preview menggunakan `python manage.py makemigrations --dry-run --verbosity 3`. Setelah struktur model dipastikan sesuai, saya membuat migration `0002_certification.py`, menerapkannya dengan `python manage.py migrate`, lalu memeriksa hasilnya melalui `python manage.py showmigrations main` dan `python manage.py makemigrations --check`. Seluruh pemeriksaan berhasil tanpa masalah dan kedua migration pada aplikasi `main` sudah berstatus diterapkan.
+
+Sebagai validasi awal, saya memasukkan enam data sertifikat pribadi melalui Django shell menggunakan `update_or_create`. Pendekatan ini dipilih agar proses pengisian dapat dijalankan kembali tanpa membuat data duplikat. Queryset kemudian diperiksa berdasarkan judul, kategori, tahun, dan status unggulan; hasilnya menunjukkan enam objek tersimpan dan Finalist ShARE Global Case Summit berada pada urutan pertama karena memiliki nilai `is_featured=True`. Data tersebut masih berada pada database lokal, sedangkan model dan berkas migration disimpan pada Git melalui commit terpisah sebagai fondasi Chapter 1.
+
+### Catatan Tugas 2
+
+### Transparansi Penggunaan AI Tugas 2
+
+
+### Pertanyaan Reflektif Tugas 2
+
+1. Jelaskan alur yang terjadi ketika pengguna membuka halaman portofolio baru, mulai dari permintaan yang diterima proyek hingga data ditampilkan pada browser. Dalam jawabanmu, jelaskan peran urls.py proyek, urls.py aplikasi, view, model, dan template.
+
+2. Mengapa data untuk bagian portofolio baru sebaiknya disimpan pada model dan tidak ditulis langsung di dalam template Jelaskan dampaknya terhadap kemudahan pemeliharaan dan pengembangan aplikasi.
+
+3. Apa perbedaan fungsi makemigrations dan migrate pada Django? Berikan contoh perubahan model yang mengharuskanmu menjalankan kedua perintah tersebut.
+
+### Respon Reflektif Tugas 2
+
+1. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
+
+2. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
+
+3. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
