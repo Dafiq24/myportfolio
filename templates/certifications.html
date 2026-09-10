@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certifications - {{ name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.1">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'img/site.webmanifest' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_certifications' %}">Certifications</a>
+                <a href="{% url 'main:show_main' %}#skills">Skills</a>
+                <a href="{% url 'main:show_main' %}#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="certifications-section" id="certifications">
+            <div class="container">
+                <div class="section-heading certifications-heading">
+                    <p class="section-kicker">Achievements &amp; Certifications</p>
+                    <h1>Milestones worth sharing</h1>
+                    <p>
+                        A curated collection of achievements and learning experiences
+                        across business, data, artificial intelligence, and web development.
+                    </p>
+                </div>
+            </div>
+
+            {% if certification_list %}
+                <div class="certificate-carousel" aria-label="Selected certificates">
+                    <div class="certificate-track">
+                        <div class="certificate-set">
+                            {% for certification in certification_list %}
+                                <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}">
+                                    <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
+                                    <span class="certificate-details">
+                                        <span class="certificate-type">{{ certification.get_category_display }}</span>
+                                        <strong>{{ certification.title }}</strong>
+                                        <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
+                                    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+
+                        <div class="certificate-set" aria-hidden="true">
+                            {% for certification in certification_list %}
+                                <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}" tabindex="-1">
+                                    <img src="{% static certification.image_path %}" alt="">
+                                    <span class="certificate-details">
+                                        <span class="certificate-type">{{ certification.get_category_display }}</span>
+                                        <strong>{{ certification.title }}</strong>
+                                        <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
+                                    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                {% for certification in certification_list %}
+                    <div class="lightbox certificate-lightbox" id="certificate-{{ certification.id }}" role="dialog" aria-modal="true" aria-label="{{ certification.title }} certificate">
+                        <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                        <figure class="lightbox-content certificate-lightbox-content">
+                            <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                            <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
+                            <figcaption>{{ certification.title }} &middot; {{ certification.issuer }} &middot; {{ certification.issued_year }}</figcaption>
+                        </figure>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="container">
+                    <p class="empty-state">No certifications have been added yet.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+</body>
+</html>

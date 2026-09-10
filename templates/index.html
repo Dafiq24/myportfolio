@@ -21,7 +21,7 @@
             <nav>
                 <a href="{% url 'main:show_main' %}">Profile</a>
                 <a href="{% url 'main:show_experience' %}">Experience</a>
-                <a href="#certifications">Certifications</a>
+                <a href="{% url 'main:show_certifications' %}">Certifications</a>
                 <a href="#skills">Skills</a>
                 <a href="#contact">Contact</a>
             </nav>
@@ -58,7 +58,10 @@
             </div>
         </section>
 
-        <!-- Experience timeline and supporting activity documentation. -->
+        {% comment %}
+        Legacy static certification markup is retained temporarily during the
+        Chapter 2 migration. The rendered certification page now reads from
+        the database through main:show_certifications.
         <section class="certifications-section" id="certifications">
             <div class="container">
                 <div class="section-heading certifications-heading">
@@ -213,6 +216,7 @@
                 </figure>
             </div>
         </section>
+        {% endcomment %}
 
         <!-- Skills developed through coursework and hands-on activities. -->
         <section class="skills-section" id="skills">
