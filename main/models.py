@@ -15,6 +15,9 @@ class Experience(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=255)
+    organization = models.CharField(max_length=255, blank=True)
+    period = models.CharField(max_length=100, blank=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
     description = models.TextField()
     category = models.CharField(
         max_length=20,
@@ -24,6 +27,10 @@ class Experience(models.Model):
     thumbnail = models.URLField(blank=True, null=True)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
+    skills = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["display_order", "-started_at"]
 
     def __str__(self):
         return self.title
@@ -31,6 +38,10 @@ class Experience(models.Model):
     @property
     def is_ongoing(self):
         return self.ended_at is None
+
+    @property
+    def skill_list(self):
+        return [skill.strip() for skill in self.skills.split(",") if skill.strip()]
 
 
 class Certification(models.Model):

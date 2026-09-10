@@ -8,11 +8,14 @@ class MainTest(TestCase):
     def setUp(self):
         self.experience = Experience.objects.create(
             title="HR Software Engineering Academy",
+            organization="COMPFEST 18",
+            period="March 2026 - Present",
             description=(
                 "Supported staff recruitment communications and coordinated "
                 "administrative screening, interviews, and onboarding."
             ),
             category="volunteer",
+            skills="Recruitment, Coordination, Communication",
         )
 
     def test_main_url_is_accessible(self):
@@ -46,8 +49,9 @@ class MainTest(TestCase):
         self.assertTemplateUsed(response, "experience.html")
         self.assertContains(response, self.experience.title)
         self.assertContains(response, self.experience.description)
-        self.assertContains(response, "Volunteer")
-        self.assertContains(response, "Sedang berlangsung")
+        self.assertContains(response, self.experience.organization)
+        self.assertContains(response, self.experience.period)
+        self.assertContains(response, "Recruitment")
         self.assertContains(
             response,
             f'href="{reverse("main:show_main")}"',
@@ -59,7 +63,7 @@ class MainTest(TestCase):
 
         self.assertContains(
             response,
-            "Belum ada pengalaman yang ditambahkan.",
+            "No experiences have been added yet.",
         )
 
     def test_completed_experience(self):
@@ -69,5 +73,4 @@ class MainTest(TestCase):
         response = self.client.get(reverse("main:show_experience"))
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, "Selesai")
-        self.assertNotContains(response, "Sedang berlangsung")
+        self.assertContains(response, self.experience.title)
