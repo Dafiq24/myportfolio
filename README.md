@@ -188,6 +188,15 @@ Pemisahan halaman sempat membuat desain Experience dari Tugas Individu 1 terlalu
 
 Sebagai penyelarasan akhir, heading Experience dan Certifications disesuaikan dengan hierarki visual pada section Skills, mencakup ukuran judul responsif, lebar konten, jarak antarjudul dan deskripsi, serta spacing menuju konten utama. Implementasi kemudian diverifikasi menggunakan `python manage.py check`, `python manage.py makemigrations --check`, `python manage.py test`, dan `git diff --check`. Seluruh enam test berhasil dijalankan, tidak terdapat perubahan model yang belum memiliki migration, dan pemeriksaan Django tidak menemukan masalah.
 
+#### (20.42 - 22.51 9/11/2026)
+Pada Part 3, saya memusatkan pengerjaan pada pengujian otomatis dan audit sumber data halaman Certifications. Test suite sebelumnya hanya mencakup halaman Profile dan Experience, sehingga belum ada bukti otomatis bahwa implementasi bagian baru benar-benar mengikuti alur Model-View-Template. Saya menambahkan kelas `CertificationTest` yang membangun objek uji secara terisolasi pada test database agar pengujian tidak bergantung pada enam data yang tersimpan di database lokal.
+
+Pengujian yang ditambahkan mencakup representasi string model dan label kategori, keberhasilan named route `main:show_certifications`, penggunaan template `certifications.html`, serta kemunculan judul, penerbit, tahun, dan UUID lightbox dari objek model pada respons HTML. Saya juga menguji empty state dengan menghapus seluruh objek Certification selama test, kemudian memastikan halaman tetap memberikan status HTTP 200 dan menampilkan pesan yang sesuai. Perilaku `Meta.ordering` diverifikasi dengan membuat sertifikat featured dan memastikan objek tersebut ditempatkan pada urutan pertama. Selain itu, halaman Profile diperiksa untuk memastikan navbar menghasilkan alamat Certifications melalui named URL.
+
+Audit template menemukan bahwa markup sertifikat statis dari Tugas Individu 1 masih tersimpan di dalam blok `{% comment %}` pada `index.html`. Meskipun blok tersebut tidak ditampilkan oleh browser, saya menghapusnya secara menyeluruh agar data sertifikat hanya memiliki satu sumber kebenaran, yaitu model `Certification`. Langkah ini juga mengurangi duplikasi sebanyak 160 baris dan membuat batas tanggung jawab antartemplate lebih jelas: `index.html` menangani halaman Profile, sedangkan `certifications.html` menangani daftar sertifikat dinamis.
+
+Setelah perubahan selesai, saya menjalankan `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, dan `git diff --check`. Jumlah test meningkat dari enam menjadi sebelas dan seluruhnya berhasil dijalankan. Django tidak menemukan masalah konfigurasi maupun perubahan model tanpa migration, sedangkan pemeriksaan diff tidak menemukan whitespace error. Dengan pengujian tersebut, route, template, data model, empty state, ordering, dan navigasi halaman Certifications kini memiliki perlindungan regresi yang dapat dijalankan kembali setelah pengembangan berikutnya.
+
 
 ### Catatan Tugas 2
 
