@@ -2,7 +2,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Certification, Experience
+
 
 class MainTest(TestCase):
     def setUp(self):
@@ -74,3 +75,67 @@ class MainTest(TestCase):
 
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, self.experience.title)
+
+
+class CertificationTest(TestCase):
+    def setUp(self):
+        self.certification = Certification.objects.create(
+            title="Gemini Certified Student",
+            issuer="Google for Education",
+            category="certification",
+            issued_year=2026,
+            image_path="img/certificates/gemini-certified-student.jpg",
+            description="Recognition of foundational knowledge in generative AI.",
+        )
+
+    def test_certification_model(self):
+        self.assertEqual(str(self.certification), "Gemini Certified Student")
+        self.assertEqual(
+            self.certification.get_category_display(),
+            "Certification",
+        )
+
+    def test_certifications_page_uses_model_data(self):
+        response = self.client.get(reverse("main:show_certifications"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "certifications.html")
+        self.assertContains(response, self.certification.title)
+        self.assertContains(response, self.certification.issuer)
+        self.assertContains(response, str(self.certification.issued_year))
+        self.assertContains(
+            response,
+            f'id="certificate-{self.certification.id}"',
+        )
+
+    def test_empty_certifications_page(self):
+        Certification.objects.all().delete()
+        response = self.client.get(reverse("main:show_certifications"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "No certifications have been added yet.",
+        )
+
+    def test_featured_certification_is_ordered_first(self):
+        featured = Certification.objects.create(
+            title="Finalist - ShARE Global Case Summit",
+            issuer="ShARE ITB, DWDG UGM & ShARE UB",
+            category="achievement",
+            issued_year=2026,
+            image_path="img/certificates/sgcs-finalist.jpg",
+            is_featured=True,
+        )
+
+        certification_list = list(Certification.objects.all())
+
+        self.assertEqual(certification_list[0], featured)
+
+    def test_navigation_uses_named_certifications_url(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("main:show_certifications")}"',
+        )
