@@ -1,6 +1,11 @@
 from django.urls import path
 
-from main.views import show_certifications, show_experience, show_main
+from main.views import (
+    show_certification_detail,
+    show_certifications,
+    show_experience,
+    show_main,
+)
 
 app_name = "main"
 
@@ -8,4 +13,9 @@ urlpatterns = [
     path("", show_main, name="show_main"),
     path("experience/", show_experience, name="show_experience"),
     path("certifications/", show_certifications, name="show_certifications"),
+    path(
+        "certifications/<uuid:certification_id>/",
+        show_certification_detail,
+        name="show_certification_detail",
+    ),
 ]

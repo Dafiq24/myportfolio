@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ certification.title }} - {{ name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.1">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'img/site.webmanifest' %}">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
+            <nav>
+                <a href="{% url 'main:show_main' %}">Profile</a>
+                <a href="{% url 'main:show_experience' %}">Experience</a>
+                <a href="{% url 'main:show_certifications' %}">Certifications</a>
+                <a href="{% url 'main:show_main' %}#skills">Skills</a>
+                <a href="{% url 'main:show_main' %}#contact">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="certificate-detail-section">
+            <div class="container">
+                <a class="certificate-back-link" href="{% url 'main:show_certifications' %}">&larr; Back to certifications</a>
+
+                <div class="certificate-detail-layout">
+                    <figure class="certificate-detail-preview">
+                        <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
+                    </figure>
+
+                    <article class="certificate-detail-panel">
+                        <div class="certificate-detail-heading">
+                            <p class="section-kicker">{{ certification.get_category_display }}</p>
+                            {% if certification.is_featured %}
+                                <span class="certificate-featured-badge">Featured milestone</span>
+                            {% endif %}
+                            <h1>{{ certification.title }}</h1>
+                            <p>{{ certification.description|default:"This credential marks an important step in my continuing learning journey." }}</p>
+                        </div>
+
+                        <dl class="certificate-meta-list">
+                            <div>
+                                <dt>Issued by</dt>
+                                <dd>{{ certification.issuer }}</dd>
+                            </div>
+                            <div>
+                                <dt>Year</dt>
+                                <dd>{{ certification.issued_year }}</dd>
+                            </div>
+                            <div>
+                                <dt>Category</dt>
+                                <dd>{{ certification.get_category_display }}</dd>
+                            </div>
+                        </dl>
+
+                        <div class="certificate-detail-actions">
+                            {% if certification.credential_url %}
+                                <a class="certificate-primary-action" href="{{ certification.credential_url }}" target="_blank" rel="noopener noreferrer">Open credential</a>
+                            {% endif %}
+                            <a class="certificate-secondary-action" href="{% url 'main:show_certifications' %}">Explore all certificates</a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
+        </div>
+    </footer>
+</body>
+</html>

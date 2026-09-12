@@ -79,6 +79,7 @@
                             <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
                             <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
                             <figcaption>{{ certification.title }} &middot; {{ certification.issuer }} &middot; {{ certification.issued_year }}</figcaption>
+                            <a class="certificate-detail-link" href="{% url 'main:show_certification_detail' certification.id %}">View certificate details</a>
                         </figure>
                     </div>
                 {% endfor %}

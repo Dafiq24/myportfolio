@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 
 from main.models import Certification, Experience
 
@@ -31,3 +31,14 @@ def show_certifications(request):
         "certification_list": Certification.objects.all(),
     }
     return render(request, "certifications.html", context)
+
+
+def show_certification_detail(request, certification_id):
+    context = {
+        "name": "Sultan Noor Dafiq",
+        "certification": get_object_or_404(
+            Certification,
+            pk=certification_id,
+        ),
+    }
+    return render(request, "certification_detail.html", context)

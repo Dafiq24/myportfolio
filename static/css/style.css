@@ -611,6 +611,164 @@ h3,
     background-color: var(--white);
 }
 
+.certificate-detail-link {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 0.85rem;
+    padding: 0.55rem 0.8rem;
+    color: var(--certificate-night);
+    background-color: var(--certificate-blue);
+    border: 2px solid var(--white);
+    border-radius: var(--radius);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.certificate-detail-link:hover,
+.certificate-detail-link:focus-visible {
+    background-color: var(--certificate-pink);
+}
+
+/* Optional certification detail page */
+.certificate-detail-section {
+    min-height: calc(100vh - 146px);
+    padding: clamp(2.5rem, 5vw, 4.5rem) 0;
+    color: var(--white);
+    background:
+        radial-gradient(circle at 82% 12%, rgba(195, 142, 180, 0.25), transparent 28%),
+        linear-gradient(135deg, #26425a 0%, var(--accent-dark) 42%, #0b1b2b 100%);
+    border-top: 1px solid #86a8cf;
+}
+
+.certificate-back-link {
+    display: inline-flex;
+    margin-bottom: 1.5rem;
+    color: var(--sky-blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.certificate-back-link:hover,
+.certificate-back-link:focus-visible {
+    color: var(--highlight);
+}
+
+.certificate-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: center;
+}
+
+.certificate-detail-preview {
+    padding: clamp(0.6rem, 1.5vw, 1rem);
+    background-color: var(--white);
+    border: 2px solid #86a8cf;
+    border-radius: var(--radius);
+    box-shadow: 10px 10px 0 #c38eb4;
+}
+
+.certificate-detail-preview img {
+    display: block;
+    width: 100%;
+    max-height: 68vh;
+    object-fit: contain;
+}
+
+.certificate-detail-panel {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    color: var(--ink);
+    background-color: #e1cbd7;
+    border: 2px solid #86a8cf;
+    border-radius: var(--radius);
+    box-shadow: 8px 8px 0 #86a8cf;
+}
+
+.certificate-detail-heading h1 {
+    margin: 0.35rem 0 0.8rem;
+    font-size: clamp(2rem, 4vw, 3.75rem);
+    line-height: 0.98;
+}
+
+.certificate-detail-heading > p:last-child {
+    color: #26425a;
+}
+
+.certificate-featured-badge {
+    display: inline-block;
+    margin-top: 0.6rem;
+    padding: 0.3rem 0.55rem;
+    color: var(--white);
+    background-color: var(--accent-dark);
+    border-radius: var(--radius);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.certificate-meta-list {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+}
+
+.certificate-meta-list > div {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #86a8cf;
+}
+
+.certificate-meta-list dt {
+    color: #26425a;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.certificate-meta-list dd {
+    font-weight: 700;
+}
+
+.certificate-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+}
+
+.certificate-primary-action,
+.certificate-secondary-action {
+    display: inline-flex;
+    justify-content: center;
+    padding: 0.65rem 0.9rem;
+    border: 2px solid var(--accent-dark);
+    border-radius: var(--radius);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.certificate-primary-action {
+    color: var(--white);
+    background-color: var(--accent-dark);
+}
+
+.certificate-secondary-action {
+    color: var(--accent-dark);
+    background-color: var(--white);
+}
+
+.certificate-primary-action:hover,
+.certificate-primary-action:focus-visible,
+.certificate-secondary-action:hover,
+.certificate-secondary-action:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 #86a8cf;
+}
+
 @keyframes certificate-scroll {
     from {
         transform: translateX(calc(-50% - 0.425rem));
@@ -920,6 +1078,14 @@ h3,
         grid-template-columns: 1fr;
     }
 
+    .certificate-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .certificate-detail-preview img {
+        max-height: 58vh;
+    }
+
     .experience-gallery {
         position: static;
         margin-right: 0.75rem;
@@ -1097,6 +1263,25 @@ h3,
 
     .certificate-lightbox-content img {
         max-height: 68vh;
+    }
+
+    .certificate-detail-section {
+        padding: 2rem 0 3rem;
+    }
+
+    .certificate-detail-panel {
+        padding: 1.1rem;
+    }
+
+    .certificate-meta-list > div {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
+
+    .certificate-detail-actions,
+    .certificate-primary-action,
+    .certificate-secondary-action {
+        width: 100%;
     }
 
     .experience-layout {
