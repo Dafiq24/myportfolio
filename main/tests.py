@@ -1,3 +1,6 @@
+import uuid
+
+from django.contrib import admin
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -139,3 +142,40 @@ class CertificationTest(TestCase):
             response,
             f'href="{reverse("main:show_certifications")}"',
         )
+
+    def test_certification_detail_page(self):
+        detail_url = reverse(
+            "main:show_certification_detail",
+            kwargs={"certification_id": self.certification.id},
+        )
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "certification_detail.html")
+        self.assertEqual(response.context["certification"], self.certification)
+        self.assertContains(response, self.certification.title)
+        self.assertContains(response, self.certification.issuer)
+        self.assertContains(response, self.certification.description)
+
+    def test_certifications_page_links_to_detail(self):
+        detail_url = reverse(
+            "main:show_certification_detail",
+            kwargs={"certification_id": self.certification.id},
+        )
+        response = self.client.get(reverse("main:show_certifications"))
+
+        self.assertContains(response, f'href="{detail_url}"')
+
+    def test_unknown_certification_detail_returns_404(self):
+        response = self.client.get(
+            reverse(
+                "main:show_certification_detail",
+                kwargs={"certification_id": uuid.uuid4()},
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_portfolio_models_are_registered_in_admin(self):
+        self.assertTrue(admin.site.is_registered(Experience))
+        self.assertTrue(admin.site.is_registered(Certification))
