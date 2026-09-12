@@ -197,8 +197,38 @@ Audit template menemukan bahwa markup sertifikat statis dari Tugas Individu 1 ma
 
 Setelah perubahan selesai, saya menjalankan `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, dan `git diff --check`. Jumlah test meningkat dari enam menjadi sebelas dan seluruhnya berhasil dijalankan. Django tidak menemukan masalah konfigurasi maupun perubahan model tanpa migration, sedangkan pemeriksaan diff tidak menemukan whitespace error. Dengan pengujian tersebut, route, template, data model, empty state, ordering, dan navigasi halaman Certifications kini memiliki perlindungan regresi yang dapat dijalankan kembali setelah pengembangan berikutnya.
 
+#### (15.49 - 18.15 9/12/2026)
+Pada Chapter 4, saya menambahkan halaman detail sertifikat sebagai pengembangan opsional di luar halaman daftar yang diwajibkan. Setiap objek kini memiliki alamat detail sendiri dengan pola `/certifications/<uuid>/`. Named route `main:show_certification_detail` meneruskan UUID ke view `show_certification_detail`, kemudian `get_object_or_404` mencari objek yang sesuai pada model `Certification`. Pendekatan ini membuat URL tetap unik dan memastikan permintaan terhadap sertifikat yang tidak tersedia menghasilkan respons 404 secara aman, bukan error server.
+
+Template `certification_detail.html` menampilkan gambar, judul, penerbit, kategori, tahun, deskripsi, status featured, dan credential URL dari satu objek model. Tautan menuju detail ditempatkan di dalam lightbox setiap sertifikat agar interaksi carousel yang sudah ada tidak berubah. Halaman detail dirancang dengan layout dua kolom pada desktop dan satu kolom pada layar yang lebih sempit, serta menyediakan navigasi kembali ke daftar Certifications. Tautan credential hanya ditampilkan ketika field `credential_url` memiliki nilai, sehingga template tetap rapi untuk data yang belum mempunyai tautan eksternal.
+
+Saya juga mengaktifkan pengelolaan konten melalui Django Admin dengan mendaftarkan model `Experience` dan `Certification`. Konfigurasi `ModelAdmin` menyediakan kolom ringkas untuk informasi penting, pencarian berdasarkan judul, organisasi, penerbit, deskripsi, atau skills, filter kategori, tahun, dan status featured, serta urutan data yang konsisten dengan halaman publik. Fitur ini membuat konten portofolio dapat diperbarui melalui antarmuka terstruktur tanpa mengubah template HTML atau menjalankan query database secara manual.
+
+Empat test tambahan dibuat untuk memverifikasi halaman detail, keterhubungan halaman daftar dengan detail, respons 404 untuk UUID yang tidak dikenal, dan registrasi kedua model pada admin site. Setelah implementasi, `python manage.py test` menjalankan total 15 test dan seluruhnya berhasil. `python manage.py makemigrations --check` juga menyatakan tidak ada perubahan model yang belum tercatat. Penambahan detail page, graceful error handling, admin configuration, responsive presentation, dan regression tests menjadi upaya untuk mengembangkan proyek melampaui checklist minimum sambil tetap mempertahankan pemisahan tanggung jawab Model-View-Template.
+
 
 ### Catatan Tugas 2
+
+#### Mengakses Django Admin
+
+Django Admin digunakan sebagai antarmuka pengelolaan data `Experience` dan `Certification` pada database. Sebelum mengaksesnya untuk pertama kali, virtual environment perlu diaktifkan dan akun superuser lokal perlu dibuat:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\env\Scripts\Activate.ps1
+python manage.py createsuperuser
+```
+
+Username, email, dan password diisi langsung melalui terminal. Karakter password tidak ditampilkan saat diketik, tetapi tetap diterima oleh terminal. Setelah muncul pesan `Superuser created successfully`, server dapat dijalankan:
+
+```powershell
+python manage.py runserver
+```
+
+Halaman admin kemudian dibuka melalui `http://127.0.0.1:8000/admin/`. Setelah login, data Experience dan Certification dapat ditambah, dicari, difilter, diurutkan, diperbarui, atau dihapus melalui panel masing-masing. Perubahan yang dilakukan melalui admin langsung memengaruhi database yang sedang digunakan oleh aplikasi.
+
+Akun superuser lokal tersimpan di `db.sqlite3` dan tidak dikirim ke Git karena database tersebut diabaikan oleh `.gitignore`. Username maupun password tidak boleh ditulis di README atau dimasukkan ke repository. Database deployment PWS terpisah dari database lokal, sehingga akun superuser lokal dan perubahan data lokal tidak otomatis tersedia pada PWS.
+
 
 ### Transparansi Penggunaan AI Tugas 2
 
