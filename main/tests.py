@@ -82,6 +82,7 @@ class MainTest(TestCase):
 
 class CertificationTest(TestCase):
     def setUp(self):
+        Certification.objects.all().delete()
         self.certification = Certification.objects.create(
             title="Gemini Certified Student",
             issuer="Google for Education",
