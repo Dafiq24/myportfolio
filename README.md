@@ -206,8 +206,46 @@ Saya juga mengaktifkan pengelolaan konten melalui Django Admin dengan mendaftark
 
 Empat test tambahan dibuat untuk memverifikasi halaman detail, keterhubungan halaman daftar dengan detail, respons 404 untuk UUID yang tidak dikenal, dan registrasi kedua model pada admin site. Setelah implementasi, `python manage.py test` menjalankan total 15 test dan seluruhnya berhasil. `python manage.py makemigrations --check` juga menyatakan tidak ada perubahan model yang belum tercatat. Penambahan detail page, graceful error handling, admin configuration, responsive presentation, dan regression tests menjadi upaya untuk mengembangkan proyek melampaui checklist minimum sambil tetap mempertahankan pemisahan tanggung jawab Model-View-Template.
 
+#### (Finalisasi 9/13/2026)
+
+Pada audit akhir, saya menyadari bahwa enam data Certification semula dimasukkan melalui Django shell dan hanya tersimpan pada `db.sqlite3` lokal. Karena database lokal tidak dikirim ke Git, fresh clone dan deployment dapat memiliki tabel Certification tanpa data yang ditampilkan. Saya menutup celah tersebut melalui data migration `0004_seed_certifications.py`. Migration menggunakan `update_or_create` agar enam sertifikat tersedia secara konsisten tanpa membuat duplikat ketika judul yang sama sudah ada. Fungsi reverse migration juga disediakan agar data seed dapat dibatalkan secara terkontrol.
+
+Test Certifications kemudian dibuat independen dari seed dengan membersihkan objek pada `setUp` sebelum membangun data uji sendiri. Setelah migration diterapkan, database lokal tetap berisi tepat enam sertifikat dan seluruh 15 test lulus. Pendekatan ini memisahkan data awal aplikasi dari data pengujian sekaligus memastikan bahwa halaman dinamis tidak bergantung pada keadaan SQLite milik satu komputer.
+
+#### Audit Akhir Checklist Tugas 2
+
+| Ketentuan | Implementasi dan bukti |
+| --- | --- |
+| Model baru pada aplikasi `main` | Model `Certification` menggunakan UUID serta delapan field informasi sertifikat. |
+| Migration dibuat dan diterapkan | `0002_certification.py` membuat model dan `0004_seed_certifications.py` menyediakan enam data awal yang portabel. |
+| View mengambil data model | `show_certifications` mengambil queryset dan mengirimkan `certification_list` melalui context. |
+| Template baru, loop, dan empty state | `certifications.html` menggunakan Django Template Language untuk card, duplikasi carousel, lightbox, dan kondisi tanpa data. |
+| Tidak ada data baru yang hardcoded di HTML | Markup sertifikat statis lama sudah dihapus; konten sertifikat berasal dari model dan data migration. |
+| Named route dan navbar | `main:show_certifications` tersedia pada `/certifications/` dan dipanggil menggunakan `{% url %}`. |
+| Navbar dan footer konsisten | Halaman Profile, Experience, Certifications, dan detail menggunakan susunan navigasi serta footer yang sama. |
+| Unit test | Sebanyak 15 test mencakup URL, template, data, empty state, ordering, detail, 404, navigasi, dan registrasi admin. |
+| Proyek berjalan tanpa error | Django system check, migration check, dan seluruh test berhasil dijalankan menggunakan Django 5.0. |
+| Fitur tambahan | Detail sertifikat berbasis UUID, graceful 404, responsive detail page, CSS-only lightbox, dan custom Django Admin. |
+
 
 ### Catatan Tugas 2
+
+#### Menjalankan Proyek dari Fresh Clone
+
+```powershell
+git clone https://github.com/Dafiq24/myportfolio.git
+cd myportfolio
+python -m venv env
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\env\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py check
+python manage.py test
+python manage.py runserver
+```
+
+Setelah server berjalan, halaman utama dapat dibuka melalui `http://127.0.0.1:8000/`, daftar sertifikat melalui `http://127.0.0.1:8000/certifications/`, dan Experience melalui `http://127.0.0.1:8000/experience/`. Perintah `migrate` juga memasang struktur database serta data awal Experience dan Certification yang disediakan melalui migration.
 
 #### Mengakses Django Admin
 
@@ -232,6 +270,25 @@ Akun superuser lokal tersimpan di `db.sqlite3` dan tidak dikirim ke Git karena d
 
 ### Transparansi Penggunaan AI Tugas 2
 
+Dalam Tugas Individu 2, saya menggunakan Codex sebagai pendamping diskusi teknis, pemeriksaan kode, dan dokumentasi. Penggunaannya dilakukan secara bertahap, bukan melalui satu prompt untuk menghasilkan seluruh tugas. Saya terlebih dahulu menentukan Certifications sebagai bagian portofolio yang akan dimigrasikan, memilih enam sertifikat pribadi, menetapkan bahwa desain carousel dan lightbox dari Tugas 1 harus dipertahankan, serta menjalankan sendiri perintah migration, test, Git, deployment, dan pemeriksaan tampilan pada browser.
+
+Strategi prompting yang saya gunakan bersifat iteratif dan berbasis bukti. Saya mengirimkan tujuan untuk satu tahap kecil, lalu menyertakan output terminal atau tangkapan layar aktual. Ketika hasil awal menyederhanakan Experience dan hanya menampilkan dua data, saya mengoreksi kebutuhan tersebut dengan meminta desain TI1 dipulihkan tanpa mengembalikan konten menjadi hardcoded. Saya juga mempertanyakan roadmap ketika tahap finalisasi disebut terlalu cepat karena fitur tambahan untuk target nilai 4 belum dikerjakan. Koreksi tersebut mendorong keputusan untuk menambahkan detail page dan Django Admin sebelum refleksi akhir.
+
+Codex membantu menyusun alternatif model, view, named route, template loop, migration, responsive CSS, unit test, konfigurasi admin, dan langkah diagnosis Git. Bantuan tersebut juga digunakan untuk menjelaskan error seperti migration yang belum diterapkan, PowerShell execution policy, serta push yang ditolak karena riwayat remote bercabang. Saya tetap mengevaluasi setiap saran melalui tampilan desktop dan mobile, `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, pemeriksaan diff, dan riwayat commit. Pada audit akhir, ketergantungan data terhadap SQLite lokal ditemukan dan diperbaiki menggunakan data migration agar hasil deployment dapat direproduksi.
+
+Ringkasan log prompting berikut menunjukkan pembagian masalah dan keputusan yang dihasilkan:
+
+| Tahap | Ringkasan prompt atau koreksi | Keputusan yang diterapkan |
+| --- | --- | --- |
+| Pemodelan | Memigrasikan Certifications tanpa menghilangkan desain TI1 | Membuat model `Certification`, migration, dan enam data sertifikat terstruktur. |
+| Integrasi MVT | Memindahkan data ke halaman terpisah tetapi mempertahankan carousel | Membuat view, context, named route, template loop, empty state, dan UUID lightbox. |
+| Koreksi Experience | Memulihkan seluruh timeline dan ukuran lama, bukan menyederhanakan desain | Memperluas metadata Experience dan mengembalikan empat data melalui migration. |
+| Pengujian | Memeriksa seluruh checklist dan menghapus sisa hardcode | Menambah test model, URL, template, data, ordering, empty state, serta menghapus markup legacy. |
+| Fitur tambahan | Menutup fase yang tertinggal untuk target nilai 4 | Menambahkan detail page, graceful 404, custom Django Admin, dan test terkait. |
+| Git dan deployment | Menangani push GitHub yang ditolak tanpa kehilangan commit lokal | Melakukan fetch, membuat backup branch, rebase di atas remote, menguji ulang, lalu push normal. |
+
+Dengan alur tersebut, AI berfungsi sebagai alat bantu analisis dan implementasi, sedangkan pemilihan konten, arah visual, prioritas fitur, koreksi hasil, validasi, dan keputusan akhir tetap melibatkan penalaran serta tanggung jawab aktif saya.
+
 
 ### Pertanyaan Reflektif Tugas 2
 
@@ -241,10 +298,12 @@ Akun superuser lokal tersimpan di `db.sqlite3` dan tidak dikirim ke Git karena d
 
 3. Apa perbedaan fungsi makemigrations dan migrate pada Django? Berikan contoh perubahan model yang mengharuskanmu menjalankan kedua perintah tersebut.
 
-### Respon Reflektif Tugas 2
+### Tugas 2
 
-1. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
+#### Refleksi Pribadi
 
-2. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
+1. Ketika pengguna membuka `/certifications/`, browser mengirimkan HTTP request ke proyek Django. `portofolio/urls.py` menjadi gerbang routing tingkat proyek dan meneruskan pola URL utama ke `main/urls.py` melalui `include`. Pada URL aplikasi, pola `certifications/` cocok dengan named route `main:show_certifications`, sehingga Django menjalankan view `show_certifications`. View tersebut memanggil `Certification.objects.all()`. Melalui ORM, model `Certification` menerjemahkan operasi itu menjadi query terhadap tabel database dan mengembalikan queryset yang sudah mengikuti `Meta.ordering`. View memasukkan queryset tersebut ke dalam context dengan nama `certification_list`, lalu meneruskannya ketika merender `certifications.html`. Template menggunakan `{% for %}` untuk membentuk card dan lightbox dari setiap objek, serta menampilkan empty state apabila queryset kosong. Hasil akhirnya dikembalikan sebagai HTTP response berisi HTML yang dirender browser. Alur serupa terjadi pada detail page, tetapi `main/urls.py` terlebih dahulu menangkap UUID dan view menggunakan `get_object_or_404` untuk mengambil tepat satu objek atau memberikan respons 404.
 
-3. Akan segera saya isi tepat di akhir penyelesaian Tugas Individu 2 ini.
+2. Menyimpan data pada model memisahkan isi portofolio dari cara penyajiannya. Ketika enam sertifikat masih ditulis langsung di HTML, perubahan judul, penerbit, urutan, atau penambahan sertifikat mengharuskan saya mengubah beberapa bagian markup carousel dan lightbox secara manual. Duplikasi itu meningkatkan risiko informasi tidak konsisten. Setelah menggunakan model, setiap sertifikat menjadi satu objek dengan tipe field, pilihan kategori, UUID, dan aturan ordering yang jelas. View yang berbeda, template daftar, detail page, test, dan Django Admin dapat menggunakan sumber data yang sama. Dampaknya, pemeliharaan lebih mudah, perubahan desain tidak mengubah data, dan penambahan konten tidak memerlukan pembuatan struktur HTML baru. Data migration juga membuat enam data awal dapat direproduksi pada fresh clone dan PWS, bukan hanya tersimpan pada SQLite lokal. Bagi saya, manfaat terbesarnya adalah terbentuknya satu sumber kebenaran yang dapat dikembangkan menuju fitur pencarian, filtering, atau API pada iterasi berikutnya.
+
+3. `makemigrations` membaca perubahan definisi model dan menghasilkan berkas migration yang mendeskripsikan perubahan schema, tetapi belum mengubah database. Sebaliknya, `migrate` menjalankan migration yang belum diterapkan agar schema atau operasi data pada database menjadi sesuai dengan riwayat migration. Contohnya, ketika saya menambahkan model `Certification` dengan field `title`, `issuer`, `category`, `issued_year`, `image_path`, dan field pendukung lainnya, saya menjalankan `python manage.py makemigrations` untuk menghasilkan `0002_certification.py`, kemudian `python manage.py migrate` untuk benar-benar membuat tabelnya. Pada pengembangan Experience, penambahan field `organization`, `period`, `display_order`, dan `skills` juga membutuhkan kedua tahap tersebut. Sementara itu, `0004_seed_certifications.py` merupakan data migration dengan `RunPython`; karena tidak mengubah definisi model, migration tersebut dibuat secara terkontrol dan cukup dijalankan melalui `migrate` untuk menambahkan enam data awal. Saya menggunakan `makemigrations --check` pada akhir pengerjaan untuk memastikan tidak ada perubahan model yang belum memiliki migration.
