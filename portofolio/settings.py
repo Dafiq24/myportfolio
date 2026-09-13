@@ -38,7 +38,9 @@ SECRET_KEY = os.getenv(
 DEBUG = not PRODUCTION
 
 if PRODUCTION:
-    ALLOWED_HOSTS = ["sultan-noor-myportofolio.pws.cs.ui.ac.id"]
+    PWS_HOST = "sultan-noor-myportofolio.pws.cs.ui.ac.id"
+    ALLOWED_HOSTS = [PWS_HOST]
+    CSRF_TRUSTED_ORIGINS = [f"https://{PWS_HOST}"]
 else:
     # Accept changing private-network IP addresses during local mobile testing.
     ALLOWED_HOSTS = ["*"]
