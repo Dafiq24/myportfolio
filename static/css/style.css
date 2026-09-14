@@ -87,6 +87,9 @@ h3,
 }
 
 .site-message {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     padding: 0.8rem 1rem;
     color: var(--ink);
     background-color: var(--white);
@@ -98,6 +101,33 @@ h3,
 
 .site-message-success {
     background-color: var(--sky-blue);
+}
+
+.site-message-dismiss {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 0;
+    color: var(--ink);
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.site-message-dismiss:hover,
+.site-message-dismiss:focus-visible {
+    color: var(--white);
+    background-color: var(--accent-dark);
+    border-color: var(--accent-dark);
+    outline: none;
 }
 
 #profile,
