@@ -1,4 +1,6 @@
 from django.contrib import messages
+from django.core import serializers
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from main.forms import CertificationForm
@@ -28,11 +30,31 @@ def show_experience(request):
 
 
 def show_certifications(request):
+    json_response = get_certifications_json(request)
+    certifications = serializers.deserialize(
+        "json",
+        json_response.content.decode("utf-8"),
+    )
+
     context = {
         "name": "Sultan Noor Dafiq",
-        "certification_list": Certification.objects.all(),
+        "certification_list": [
+            certification.object for certification in certifications
+        ],
+        "title_query": request.GET.get("title", "").strip(),
     }
     return render(request, "certifications.html", context)
+
+
+def get_certifications_json(request):
+    title_query = request.GET.get("title", "").strip()
+    certifications = Certification.objects.all()
+
+    if title_query:
+        certifications = certifications.filter(title__icontains=title_query)
+
+    certifications_json = serializers.serialize("json", certifications)
+    return HttpResponse(certifications_json, content_type="application/json")
 
 
 def create_certification(request):

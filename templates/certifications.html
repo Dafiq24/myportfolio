@@ -19,11 +19,28 @@
                         Add certification
                     </a>
                 </div>
+
+                <form class="certificate-search" method="get" action="{% url 'main:show_certifications' %}" role="search">
+                    <label for="certificate-title-search">Search certifications by title</label>
+                    <div class="certificate-search-controls">
+                        <input
+                            id="certificate-title-search"
+                            name="title"
+                            type="search"
+                            value="{{ title_query }}"
+                            placeholder="e.g. Gemini or Java"
+                        >
+                        <button type="submit">Search</button>
+                        {% if title_query %}
+                            <a href="{% url 'main:show_certifications' %}">Clear</a>
+                        {% endif %}
+                    </div>
+                </form>
             </div>
 
             {% if certification_list %}
-                <div class="certificate-carousel" aria-label="Selected certificates">
-                    <div class="certificate-track">
+                <div class="certificate-carousel{% if certification_list|length == 1 %} certificate-carousel-single{% endif %}" aria-label="Selected certificates">
+                    <div class="certificate-track{% if certification_list|length == 1 %} certificate-track-static{% endif %}">
                         <div class="certificate-set">
                             {% for certification in certification_list %}
                                 <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}">
@@ -37,18 +54,20 @@
                             {% endfor %}
                         </div>
 
-                        <div class="certificate-set" aria-hidden="true">
-                            {% for certification in certification_list %}
-                                <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}" tabindex="-1">
-                                    <img src="{% static certification.image_path %}" alt="">
-                                    <span class="certificate-details">
-                                        <span class="certificate-type">{{ certification.get_category_display }}</span>
-                                        <strong>{{ certification.title }}</strong>
-                                        <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
-                                    </span>
-                                </a>
-                            {% endfor %}
-                        </div>
+                        {% if certification_list|length > 1 %}
+                            <div class="certificate-set" aria-hidden="true">
+                                {% for certification in certification_list %}
+                                    <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}" tabindex="-1">
+                                        <img src="{% static certification.image_path %}" alt="">
+                                        <span class="certificate-details">
+                                            <span class="certificate-type">{{ certification.get_category_display }}</span>
+                                            <strong>{{ certification.title }}</strong>
+                                            <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
+                                        </span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -65,7 +84,11 @@
                 {% endfor %}
             {% else %}
                 <div class="container">
-                    <p class="empty-state">No certifications have been added yet.</p>
+                    {% if title_query %}
+                        <p class="empty-state">No certifications match “{{ title_query }}”.</p>
+                    {% else %}
+                        <p class="empty-state">No certifications have been added yet.</p>
+                    {% endif %}
                 </div>
             {% endif %}
         </section>
