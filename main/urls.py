@@ -1,6 +1,7 @@
 from django.urls import path
 
 from main.views import (
+    create_certification,
     show_certification_detail,
     show_certifications,
     show_experience,
@@ -13,6 +14,11 @@ urlpatterns = [
     path("", show_main, name="show_main"),
     path("experience/", show_experience, name="show_experience"),
     path("certifications/", show_certifications, name="show_certifications"),
+    path(
+        "certifications/add/",
+        create_certification,
+        name="create_certification",
+    ),
     path(
         "certifications/<uuid:certification_id>/",
         show_certification_detail,

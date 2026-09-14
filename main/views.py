@@ -1,5 +1,7 @@
-from django.shortcuts import get_object_or_404, render
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 
+from main.forms import CertificationForm
 from main.models import Certification, Experience
 
 def show_main(request):
@@ -31,6 +33,20 @@ def show_certifications(request):
         "certification_list": Certification.objects.all(),
     }
     return render(request, "certifications.html", context)
+
+
+def create_certification(request):
+    form = CertificationForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Certification added successfully.")
+        return redirect("main:show_certifications")
+
+    context = {
+        "name": "Sultan Noor Dafiq",
+        "form": form,
+    }
+    return render(request, "certification_form.html", context)
 
 
 def show_certification_detail(request, certification_id):

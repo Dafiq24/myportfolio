@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block meta %}
+    <title>Add Certification - {{ name }}</title>
+{% endblock meta %}
+{% block content %}
+    <main>
+        <section class="portfolio-form-section">
+            <div class="container">
+                <div class="portfolio-form-shell">
+                    <div class="section-heading portfolio-form-heading">
+                        <p class="section-kicker">Certification management</p>
+                        <h1>Add a new milestone</h1>
+                        <p>Record a certification, achievement, course, or workshop in the portfolio.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'main:create_certification' %}" class="portfolio-form">
+                        {% csrf_token %}
+
+                        {% for error in form.non_field_errors %}
+                            <p class="form-error">{{ error }}</p>
+                        {% endfor %}
+
+                        {% for field in form %}
+                            <div class="form-group{% if field.field.widget.input_type == 'checkbox' %} form-group-checkbox{% endif %}">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <p class="form-help">{{ field.help_text }}</p>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <p class="form-error">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+
+                        <div class="form-actions">
+                            <button type="submit" class="form-primary-action">Add certification</button>
+                            <a href="{% url 'main:show_certifications' %}" class="form-secondary-action">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock content %}
