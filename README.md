@@ -20,6 +20,12 @@ Kelas : PBP E
   - [Transparansi Penggunaan AI Tugas 2](#transparansi-penggunaan-ai-tugas-2)
   - [Pertanyaan Reflektif Tugas 2](#pertanyaan-reflektif-tugas-2)
   - [Tugas 2](#tugas-2)
+- [Tugas Individu 3](#tugas-individu-3)
+  - [Dokumentasi Tugas 3](#dokumentasi-tugas-3)
+  - [Catatan Tugas 3](#catatan-tugas-3)
+  - [Transparansi Penggunaan AI Tugas 3](#transparansi-penggunaan-ai-tugas-3)
+  - [Pertanyaan Reflektif Tugas 3](#pertanyaan-reflektif-tugas-3)
+  - [Tugas 3](#tugas-3)
 
 ## Tugas Individu 1
 
@@ -155,7 +161,7 @@ Setiap saran tetap saya analisis berdasarkan kebutuhan portofolio dan hasil tamp
 
 3. Website yang Anda buat saat ini adalah static web murni. Batasan apa yang Anda rasakan saat mencoba menyajikan informasi pada portofolio Anda secara optimal? Berdasarkan batasan tersebut, fungsionalitas dinamis apa yang paling ingin Anda persiapkan dan tambahkan pada iterasi proyek selanjutnya?
 
-### Respon Reflektif Tugas 1
+### Tugas 1
 
 1. Ya, saya menggunakan elemen semantik HTML5 seperti `<header>`, `<nav>`, `<main>`, `<section>`, `<article>`, `<aside>`, dan `<footer>`. Elemen `<section>` membagi halaman menjadi Profile, Experience, Achievements & Certifications, Skills & Tools, dan Contact, sedangkan `<article>` digunakan untuk konten yang dapat berdiri sendiri seperti card pengalaman dan kategori skills. Saya juga menggunakan `<aside>` untuk galeri dokumentasi karena bagian tersebut berfungsi sebagai pendukung dari informasi utama pada Experience. Penggunaan elemen semantik membantu saya melihat website bukan hanya sebagai kumpulan `<div>`, tetapi sebagai susunan informasi yang memiliki fungsi masing-masing. Struktur kode menjadi lebih mudah dibaca, dikembangkan, dan dirawat ketika section baru ditambahkan. Walaupun website ini masih bersifat statis, struktur tersebut menjadi fondasi yang lebih baik untuk aksesibilitas dan pengembangan website dinamis pada tahap berikutnya.
 
@@ -300,10 +306,53 @@ Dengan alur tersebut, AI berfungsi sebagai alat bantu analisis dan implementasi,
 
 ### Tugas 2
 
-#### Refleksi Pribadi
-
 1. Ketika pengguna membuka `/certifications/`, browser mengirimkan HTTP request ke proyek Django. `portofolio/urls.py` menjadi gerbang routing tingkat proyek dan meneruskan pola URL utama ke `main/urls.py` melalui `include`. Pada URL aplikasi, pola `certifications/` cocok dengan named route `main:show_certifications`, sehingga Django menjalankan view `show_certifications`. View tersebut memanggil `Certification.objects.all()`. Melalui ORM, model `Certification` menerjemahkan operasi itu menjadi query terhadap tabel database dan mengembalikan queryset yang sudah mengikuti `Meta.ordering`. View memasukkan queryset tersebut ke dalam context dengan nama `certification_list`, lalu meneruskannya ketika merender `certifications.html`. Template menggunakan `{% for %}` untuk membentuk card dan lightbox dari setiap objek, serta menampilkan empty state apabila queryset kosong. Hasil akhirnya dikembalikan sebagai HTTP response berisi HTML yang dirender browser. Alur serupa terjadi pada detail page, tetapi `main/urls.py` terlebih dahulu menangkap UUID dan view menggunakan `get_object_or_404` untuk mengambil tepat satu objek atau memberikan respons 404.
 
 2. Menyimpan data pada model memisahkan isi portofolio dari cara penyajiannya. Ketika enam sertifikat masih ditulis langsung di HTML, perubahan judul, penerbit, urutan, atau penambahan sertifikat mengharuskan saya mengubah beberapa bagian markup carousel dan lightbox secara manual. Duplikasi itu meningkatkan risiko informasi tidak konsisten. Setelah menggunakan model, setiap sertifikat menjadi satu objek dengan tipe field, pilihan kategori, UUID, dan aturan ordering yang jelas. View yang berbeda, template daftar, detail page, test, dan Django Admin dapat menggunakan sumber data yang sama. Dampaknya, pemeliharaan lebih mudah, perubahan desain tidak mengubah data, dan penambahan konten tidak memerlukan pembuatan struktur HTML baru. Data migration juga membuat enam data awal dapat direproduksi pada fresh clone dan PWS, bukan hanya tersimpan pada SQLite lokal. Bagi saya, manfaat terbesarnya adalah terbentuknya satu sumber kebenaran yang dapat dikembangkan menuju fitur pencarian, filtering, atau API pada iterasi berikutnya.
 
 3. `makemigrations` membaca perubahan definisi model dan menghasilkan berkas migration yang mendeskripsikan perubahan schema, tetapi belum mengubah database. Sebaliknya, `migrate` menjalankan migration yang belum diterapkan agar schema atau operasi data pada database menjadi sesuai dengan riwayat migration. Contohnya, ketika saya menambahkan model `Certification` dengan field `title`, `issuer`, `category`, `issued_year`, `image_path`, dan field pendukung lainnya, saya menjalankan `python manage.py makemigrations` untuk menghasilkan `0002_certification.py`, kemudian `python manage.py migrate` untuk benar-benar membuat tabelnya. Pada pengembangan Experience, penambahan field `organization`, `period`, `display_order`, dan `skills` juga membutuhkan kedua tahap tersebut. Sementara itu, `0004_seed_certifications.py` merupakan data migration dengan `RunPython`; karena tidak mengubah definisi model, migration tersebut dibuat secara terkontrol dan cukup dijalankan melalui `migrate` untuk menambahkan enam data awal. Saya menggunakan `makemigrations --check` pada akhir pengerjaan untuk memastikan tidak ada perubahan model yang belum memiliki migration.
+
+
+## Tugas Individu 3
+
+### Dokumentasi Tugas 3
+
+#### (16.59 - 19.38 9/14/2026)
+Setelah Tutorial 03 selesai dan dikumpulkan, saya memulai Tugas Individu 3 dengan memilih bagian **Experience** sebagai objek penerapan form dan data delivery. Pilihan tersebut dibuat karena Tutorial 03 sudah menggunakan `Certification`, sedangkan tugas ini meminta penerapan mekanisme yang sama pada bagian portofolio lain. Timeline Experience sebelumnya sudah menggunakan model Django dan memiliki desain yang matang, sehingga pengembangan difokuskan pada kemampuan pengelolaan data tanpa mengembalikan kontennya menjadi hardcoded atau mengubah presentasi lama.
+
+Saya menambahkan `ExperienceForm` di `main/forms.py` menggunakan `forms.ModelForm`. Form tersebut memuat seluruh field Experience yang dapat diisi pengguna, yaitu `title`, `organization`, `period`, `display_order`, `description`, `category`, `thumbnail`, dan `skills`. Field `id` tidak disertakan karena UUID dibuat otomatis oleh model, sedangkan `started_at` dan `ended_at` dikecualikan karena berhubungan dengan timestamp. Label, placeholder, jenis widget, serta help text disesuaikan agar fungsi setiap input mudah dipahami. Field `display_order` menjelaskan posisi data pada timeline, `thumbnail` menerima URL dokumentasi opsional, dan `skills` menggunakan daftar yang dipisahkan koma agar dapat dirender kembali sebagai tag.
+
+Alur create diimplementasikan melalui view `create_experience` dan named route `main:create_experience` pada alamat `/experience/add/`. View menggunakan satu instance form untuk menangani request GET maupun POST. Ketika request POST valid, `form.save()` menyimpan objek ke database, Django messages menambahkan umpan balik keberhasilan, lalu pengguna diarahkan kembali ke halaman Experience. Apabila data tidak valid, halaman form yang sama dirender kembali bersama pesan error per field. Template `experience_form.html` memperluas `base.html`, menggunakan `{% csrf_token %}`, dan memanfaatkan styling form bersama yang sebelumnya dibuat agar tampilan tetap konsisten serta responsif.
+
+Tombol **Add experience** ditambahkan pada heading halaman Experience tanpa mengubah struktur timeline dan galeri dokumentasi. Pengujian manual dilakukan menggunakan objek `Temporary Experience Validation` dengan `display_order` bernilai 99. Setelah form dikirim, objek berhasil tersimpan, tampil pada bagian bawah timeline sesuai aturan pengurutan model, dan daftar skills berhasil dipecah menjadi tag Form, Validation, dan Django. Pemeriksaan `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, dan `git diff --check` tetap berhasil; sebanyak 27 test yang sudah ada lulus dan tidak ditemukan perubahan model yang membutuhkan migration baru.
+
+Sebagai peningkatan UI/UX, komponen Django messages pada `base.html` kemudian dibuat dapat ditutup. Setiap success, warning, atau error notification memiliki tombol silang dengan label aksesibilitas `Dismiss notification`. JavaScript hanya menghapus elemen message terkait dari DOM ketika tombol ditekan, sehingga pengguna dapat mengembalikan layout halaman tanpa melakukan refresh. Tombol tersebut memiliki state hover dan keyboard focus yang jelas, sedangkan perubahan stylesheet dilengkapi cache-busting agar langsung termuat pada browser. Fitur ini dipisahkan dari alur create melalui commit tersendiri agar riwayat Git tetap modular.
+
+Dokumentasi berikutnya akan dilengkapi secara bertahap setelah fitur update, delete, JSON data delivery, deserialization, antarmuka pengelolaan, serta regression test Experience selesai diimplementasikan dan diverifikasi.
+
+
+### Catatan Tugas 3
+
+Catatan teknis dan petunjuk penggunaan Tugas 3 akan dilengkapi setelah seluruh alur pengelolaan data Experience selesai.
+
+
+### Transparansi Penggunaan AI Tugas 3
+
+Transparansi penggunaan AI, strategi prompting, kontribusi spesifik, keterbatasan hasil AI, dan perbaikan manual akan dilengkapi pada tahap finalisasi Tugas 3.
+
+
+### Pertanyaan Reflektif Tugas 3
+
+1. Jelaskan mengapa kita menggunakan `ModelForm` pada Django alih-alih membuat form HTML secara manual. Selain itu, jelaskan pula mengapa kita diwajibkan menambahkan `{% csrf_token %}` pada form tersebut!
+
+2. Pada Tutorial 03, kita membahas format data JSON dan XML. Mengapa JSON lebih disukai dalam pengembangan aplikasi web modern dibandingkan XML?
+
+3. Jelaskan alur yang terjadi saat kamu menggunakan fungsi view untuk mengembalikan data portofoliomu dalam bentuk JSON. Mengapa kita perlu melakukan proses serialization pada model Django sebelum datanya dikembalikan?
+
+### Tugas 3
+
+1. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
+
+2. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
+
+3. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
