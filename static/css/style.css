@@ -241,6 +241,35 @@ h3,
     color: var(--accent-dark);
 }
 
+.experience-add-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: fit-content;
+    margin-top: 1rem;
+    padding: 0.65rem 0.9rem;
+    color: var(--white);
+    background-color: var(--accent-dark);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.experience-add-action:hover,
+.experience-add-action:focus-visible {
+    color: var(--ink);
+    background-color: var(--highlight);
+    box-shadow: 4px 4px 0 var(--accent);
+    transform: translateY(-2px);
+}
+
+.experience-add-action span {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
 .experience-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);

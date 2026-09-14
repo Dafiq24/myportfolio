@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from main.forms import CertificationForm
+from main.forms import CertificationForm, ExperienceForm
 from main.models import Certification, Experience
 
 def show_main(request):
@@ -28,6 +28,20 @@ def show_experience(request):
         "experience_list": Experience.objects.all(),
     }
     return render(request, "experience.html", context)
+
+
+def create_experience(request):
+    form = ExperienceForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience added successfully.")
+        return redirect("main:show_experience")
+
+    context = {
+        "name": "Sultan Noor Dafiq",
+        "form": form,
+    }
+    return render(request, "experience_form.html", context)
 
 
 def show_certifications(request):

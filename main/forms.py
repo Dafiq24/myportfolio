@@ -1,6 +1,6 @@
 from django import forms
 
-from main.models import Certification
+from main.models import Certification, Experience
 
 
 class CertificationForm(forms.ModelForm):
@@ -52,4 +52,59 @@ class CertificationForm(forms.ModelForm):
                 }
             ),
             "is_featured": forms.CheckboxInput(),
+        }
+
+
+class ExperienceForm(forms.ModelForm):
+    class Meta:
+        model = Experience
+        fields = [
+            "title",
+            "organization",
+            "period",
+            "display_order",
+            "description",
+            "category",
+            "thumbnail",
+            "skills",
+        ]
+        labels = {
+            "title": "Role title",
+            "organization": "Organization",
+            "period": "Display period",
+            "display_order": "Timeline position",
+            "description": "Description",
+            "category": "Employment type",
+            "thumbnail": "Documentation image URL",
+            "skills": "Related skills",
+        }
+        help_texts = {
+            "display_order": "Lower numbers appear earlier in the timeline.",
+            "thumbnail": "Optional public URL for a documentation image.",
+            "skills": "Separate multiple skills with commas.",
+        }
+        widgets = {
+            "title": forms.TextInput(
+                attrs={"placeholder": "Teaching Staff"}
+            ),
+            "organization": forms.TextInput(
+                attrs={"placeholder": "BETIS Fasilkom UI"}
+            ),
+            "period": forms.TextInput(
+                attrs={"placeholder": "January 2026 - June 2026"}
+            ),
+            "display_order": forms.NumberInput(attrs={"min": 0}),
+            "description": forms.Textarea(
+                attrs={
+                    "placeholder": "Describe your role and contributions.",
+                    "rows": 5,
+                }
+            ),
+            "category": forms.Select(),
+            "thumbnail": forms.URLInput(
+                attrs={"placeholder": "https://example.com/activity.jpg"}
+            ),
+            "skills": forms.TextInput(
+                attrs={"placeholder": "Teaching, Communication, Teamwork"}
+            ),
         }
