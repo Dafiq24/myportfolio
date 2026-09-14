@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.core import serializers
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from main.forms import CertificationForm
 from main.models import Certification, Experience
@@ -69,6 +70,18 @@ def create_certification(request):
         "form": form,
     }
     return render(request, "certification_form.html", context)
+
+
+@require_POST
+def delete_certification(request, certification_id):
+    certification = get_object_or_404(Certification, pk=certification_id)
+    certification_title = certification.title
+    certification.delete()
+    messages.success(
+        request,
+        f'Certification "{certification_title}" deleted successfully.',
+    )
+    return redirect("main:show_certifications")
 
 
 def show_certification_detail(request, certification_id):

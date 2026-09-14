@@ -865,14 +865,18 @@ h3,
 }
 
 .certificate-primary-action,
-.certificate-secondary-action {
+.certificate-secondary-action,
+.certificate-delete-action,
+.certificate-delete-confirm {
     display: inline-flex;
     justify-content: center;
     padding: 0.65rem 0.9rem;
     border: 2px solid var(--accent-dark);
     border-radius: var(--radius);
+    font: inherit;
     font-weight: 700;
     text-decoration: none;
+    cursor: pointer;
 }
 
 .certificate-primary-action {
@@ -885,12 +889,51 @@ h3,
     background-color: var(--white);
 }
 
+.certificate-delete-action,
+.certificate-delete-confirm {
+    color: var(--white);
+    background-color: #9f2d3f;
+}
+
 .certificate-primary-action:hover,
 .certificate-primary-action:focus-visible,
 .certificate-secondary-action:hover,
-.certificate-secondary-action:focus-visible {
+.certificate-secondary-action:focus-visible,
+.certificate-delete-action:hover,
+.certificate-delete-action:focus-visible,
+.certificate-delete-confirm:hover,
+.certificate-delete-confirm:focus-visible {
     transform: translateY(-2px);
     box-shadow: 4px 4px 0 #86a8cf;
+}
+
+.delete-confirmation-content {
+    width: min(520px, 100%);
+    padding: clamp(1.25rem, 4vw, 2rem);
+    color: var(--ink);
+    background-color: #e1cbd7;
+    border-color: #86a8cf;
+}
+
+.delete-confirmation-content h2 {
+    margin: 0.35rem 0 0.75rem;
+    font-size: clamp(1.65rem, 4vw, 2.35rem);
+    line-height: 1.05;
+}
+
+.delete-confirmation-content > p:last-of-type {
+    color: #26425a;
+}
+
+.delete-confirmation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-top: 1.5rem;
+}
+
+.delete-confirmation-actions form {
+    display: flex;
 }
 
 /* Shared portfolio forms */
@@ -1555,7 +1598,14 @@ h3,
 
     .certificate-detail-actions,
     .certificate-primary-action,
-    .certificate-secondary-action {
+    .certificate-secondary-action,
+    .certificate-delete-action {
+        width: 100%;
+    }
+
+    .delete-confirmation-actions,
+    .delete-confirmation-actions form,
+    .certificate-delete-confirm {
         width: 100%;
     }
 

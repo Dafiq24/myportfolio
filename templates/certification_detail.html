@@ -44,8 +44,29 @@
                                 <a class="certificate-primary-action" href="{{ certification.credential_url }}" target="_blank" rel="noopener noreferrer">Open credential</a>
                             {% endif %}
                             <a class="certificate-secondary-action" href="{% url 'main:show_certifications' %}">Explore all certificates</a>
+                            <a class="certificate-delete-action" href="#delete-certification">Delete certification</a>
                         </div>
                     </article>
+                </div>
+            </div>
+
+            <div class="lightbox delete-confirmation" id="delete-certification" role="dialog" aria-modal="true" aria-labelledby="delete-confirmation-title">
+                <a class="lightbox-backdrop" href="{% url 'main:show_certification_detail' certification.id %}" aria-label="Cancel deletion"></a>
+                <div class="lightbox-content delete-confirmation-content">
+                    <a class="lightbox-close" href="{% url 'main:show_certification_detail' certification.id %}" aria-label="Cancel deletion">&times;</a>
+                    <p class="section-kicker">Confirm deletion</p>
+                    <h2 id="delete-confirmation-title">Delete this certification?</h2>
+                    <p>
+                        “{{ certification.title }}” will be permanently removed from the portfolio.
+                        This action cannot be undone.
+                    </p>
+                    <div class="delete-confirmation-actions">
+                        <form method="post" action="{% url 'main:delete_certification' certification.id %}">
+                            {% csrf_token %}
+                            <button class="certificate-delete-confirm" type="submit">Yes, delete it</button>
+                        </form>
+                        <a class="certificate-secondary-action" href="{% url 'main:show_certification_detail' certification.id %}">Keep certification</a>
+                    </div>
                 </div>
             </div>
         </section>
