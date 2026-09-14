@@ -1,10 +1,11 @@
 import uuid
 
 from django.contrib import admin
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from main.forms import CertificationForm
 from main.models import Certification, Experience
 
 
@@ -149,6 +150,10 @@ class CertificationTest(TestCase):
             "main:show_certification_detail",
             kwargs={"certification_id": self.certification.id},
         )
+        delete_url = reverse(
+            "main:delete_certification",
+            kwargs={"certification_id": self.certification.id},
+        )
         response = self.client.get(detail_url)
 
         self.assertEqual(response.status_code, 200)
@@ -157,6 +162,8 @@ class CertificationTest(TestCase):
         self.assertContains(response, self.certification.title)
         self.assertContains(response, self.certification.issuer)
         self.assertContains(response, self.certification.description)
+        self.assertContains(response, f'action="{delete_url}"')
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
 
     def test_certifications_page_links_to_detail(self):
         detail_url = reverse(
@@ -180,3 +187,188 @@ class CertificationTest(TestCase):
     def test_portfolio_models_are_registered_in_admin(self):
         self.assertTrue(admin.site.is_registered(Experience))
         self.assertTrue(admin.site.is_registered(Certification))
+
+    def test_certification_form_exposes_expected_fields(self):
+        form = CertificationForm()
+
+        self.assertEqual(
+            list(form.fields),
+            [
+                "title",
+                "issuer",
+                "category",
+                "issued_year",
+                "image_path",
+                "credential_url",
+                "description",
+                "is_featured",
+            ],
+        )
+        self.assertNotIn("id", form.fields)
+
+    def test_create_certification_page_contains_form_and_csrf_token(self):
+        response = self.client.get(reverse("main:create_certification"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "certification_form.html")
+        self.assertIsInstance(response.context["form"], CertificationForm)
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+
+    def test_valid_certification_submission_creates_object(self):
+        response = self.client.post(
+            reverse("main:create_certification"),
+            {
+                "title": "Java Collections Framework",
+                "issuer": "Udemy",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/java-collections.png",
+                "credential_url": "",
+                "description": "Studied the Java Collections Framework.",
+            },
+        )
+
+        self.assertRedirects(response, reverse("main:show_certifications"))
+        self.assertTrue(
+            Certification.objects.filter(
+                title="Java Collections Framework"
+            ).exists()
+        )
+
+    def test_invalid_certification_submission_shows_errors(self):
+        response = self.client.post(
+            reverse("main:create_certification"),
+            {
+                "title": "",
+                "issuer": "Udemy",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/java-collections.png",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "title",
+            "This field is required.",
+        )
+        self.assertEqual(Certification.objects.count(), 1)
+
+    def test_certifications_json_endpoint_returns_model_data(self):
+        response = self.client.get(reverse("main:get_certifications_json"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        payload = response.json()
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(
+            payload[0]["fields"]["title"],
+            self.certification.title,
+        )
+
+    def test_certifications_json_filter_is_case_insensitive(self):
+        Certification.objects.create(
+            title="Java Collections Framework",
+            issuer="Udemy",
+            category="course",
+            issued_year=2026,
+            image_path="img/certificates/java-collections.png",
+        )
+
+        response = self.client.get(
+            reverse("main:get_certifications_json"),
+            {"title": "gEmInI"},
+        )
+        payload = response.json()
+
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(
+            payload[0]["fields"]["title"],
+            self.certification.title,
+        )
+
+    def test_certifications_page_filters_deserialized_data(self):
+        other_certification = Certification.objects.create(
+            title="Java Collections Framework",
+            issuer="Udemy",
+            category="course",
+            issued_year=2026,
+            image_path="img/certificates/java-collections.png",
+        )
+
+        response = self.client.get(
+            reverse("main:show_certifications"),
+            {"title": "Gemini"},
+        )
+
+        self.assertContains(response, self.certification.title)
+        self.assertNotContains(response, other_certification.title)
+        self.assertContains(response, "certificate-track-static")
+        self.assertNotContains(
+            response,
+            '<div class="certificate-set" aria-hidden="true">',
+        )
+
+    def test_certification_search_has_contextual_empty_state(self):
+        response = self.client.get(
+            reverse("main:show_certifications"),
+            {"title": "Unknown credential"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "No certifications match",
+        )
+        self.assertContains(response, "Unknown credential")
+
+    def test_delete_certification_rejects_get_requests(self):
+        delete_url = reverse(
+            "main:delete_certification",
+            kwargs={"certification_id": self.certification.id},
+        )
+
+        response = self.client.get(delete_url)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertTrue(
+            Certification.objects.filter(pk=self.certification.id).exists()
+        )
+
+    def test_delete_certification_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        delete_url = reverse(
+            "main:delete_certification",
+            kwargs={"certification_id": self.certification.id},
+        )
+
+        response = csrf_client.post(delete_url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(
+            Certification.objects.filter(pk=self.certification.id).exists()
+        )
+
+    def test_delete_certification_removes_object(self):
+        delete_url = reverse(
+            "main:delete_certification",
+            kwargs={"certification_id": self.certification.id},
+        )
+
+        response = self.client.post(delete_url)
+
+        self.assertRedirects(response, reverse("main:show_certifications"))
+        self.assertFalse(
+            Certification.objects.filter(pk=self.certification.id).exists()
+        )
+
+    def test_unknown_certification_delete_returns_404(self):
+        response = self.client.post(
+            reverse(
+                "main:delete_certification",
+                kwargs={"certification_id": uuid.uuid4()},
+            )
+        )
+
+        self.assertEqual(response.status_code, 404)
