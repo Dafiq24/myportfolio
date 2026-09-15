@@ -337,7 +337,16 @@ Template `experience_form.html` digunakan bersama oleh operasi create dan update
 
 Pengujian manual dilakukan pada objek sementara yang dibuat melalui Chapter 1. Seluruh field lama berhasil terisi pada halaman edit, perubahan tersimpan pada objek yang sama, dan hasil terbaru tampil kembali di timeline tanpa menambah card baru. Validasi teknis melalui `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, dan `git diff --check` berhasil dijalankan. Sebanyak 27 test tetap lulus dan tidak terdapat perubahan model yang membutuhkan migration baru.
 
-Dokumentasi berikutnya akan dilengkapi secara bertahap setelah fitur delete, JSON data delivery, deserialization, antarmuka pencarian atau filtering, serta regression test Experience selesai diimplementasikan dan diverifikasi.
+#### (19.22 - 20.35 9/15/2026)
+Pada bagian kali ini, saya melengkapi operasi pengelolaan dasar Experience dengan fitur delete berbasis UUID. Named route `main:delete_experience` menggunakan pola `/experience/<uuid:experience_id>/delete/`, sedangkan view `delete_experience` mengambil objek melalui `get_object_or_404`. View tersebut dihiasi decorator `@require_POST`, sehingga membuka endpoint menggunakan GET tidak akan menghapus data. Judul objek disimpan sebelum operasi delete agar flash message tetap dapat menyebutkan Experience yang berhasil dihapus, kemudian pengguna diarahkan kembali ke timeline.
+
+Antarmuka penghapusan ditempatkan langsung pada setiap card timeline. Tombol **Delete experience** tidak segera mengirim request, tetapi membuka confirmation modal yang memiliki ID unik berdasarkan UUID objek. Modal menampilkan judul Experience yang akan dihapus, peringatan bahwa tindakan tidak dapat dibatalkan, tombol **Yes, delete it**, serta beberapa jalur pembatalan melalui **Keep experience**, tombol silang, dan backdrop. Form konfirmasi menggunakan method POST dan `{% csrf_token %}` agar request perubahan data memperoleh perlindungan CSRF dari Django.
+
+Styling destructive action menggunakan warna merah yang berbeda dari tombol Edit agar konsekuensi kedua tindakan dapat dikenali sebelum ditekan. Modal memakai komponen lightbox bersama dan tetap responsif pada layar sempit. Setiap card juga memperoleh anchor ID agar pengguna dapat kembali ke posisi Experience yang sama setelah membatalkan modal. Stylesheet dinaikkan ke versi cache-busting berikutnya supaya perubahan tombol dan modal langsung dimuat browser.
+
+Pengujian manual dilakukan menggunakan objek sementara dari chapter sebelumnya. Jalur pembatalan berhasil mempertahankan data, sedangkan konfirmasi POST menghapus tepat satu objek sementara dan mengembalikan pengguna ke timeline dengan success notification yang dapat ditutup. Empat Experience asli tetap tersedia. `python manage.py makemigrations --check` menyatakan tidak ada perubahan model dan `git diff --check` tidak menemukan whitespace error. Pengujian otomatis khusus untuk method restriction, CSRF, successful deletion, dan unknown UUID akan ditambahkan bersama regression test Experience pada chapter pengujian.
+
+Dokumentasi berikutnya akan dilengkapi secara bertahap setelah fitur JSON data delivery, deserialization, antarmuka pencarian atau filtering, serta regression test Experience selesai diimplementasikan dan diverifikasi.
 
 
 ### Catatan Tugas 3
