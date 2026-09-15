@@ -44,6 +44,23 @@ def create_experience(request):
     return render(request, "experience_form.html", context)
 
 
+def update_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Experience updated successfully.")
+        return redirect("main:show_experience")
+
+    context = {
+        "name": "Sultan Noor Dafiq",
+        "form": form,
+        "experience": experience,
+    }
+    return render(request, "experience_form.html", context)
+
+
 def show_certifications(request):
     json_response = get_certifications_json(request)
     certifications = serializers.deserialize(

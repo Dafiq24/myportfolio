@@ -30,6 +30,9 @@
                                         <li>{{ skill }}</li>
                                     {% endfor %}
                                 </ul>
+                                <div class="experience-item-actions">
+                                    <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
+                                </div>
                             </article>
                         {% empty %}
                             <p class="empty-state">No experiences have been added yet.</p>

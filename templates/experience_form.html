@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block meta %}
-    <title>Add Experience - {{ name }}</title>
+    <title>{% if experience %}Update {{ experience.title }}{% else %}Add Experience{% endif %} - {{ name }}</title>
 {% endblock meta %}
 {% block content %}
     <main>
@@ -9,11 +9,16 @@
                 <div class="portfolio-form-shell">
                     <div class="section-heading portfolio-form-heading">
                         <p class="section-kicker">Experience management</p>
-                        <h1>Add a new chapter</h1>
-                        <p>Record a role, organization, contribution, and the skills developed through it.</p>
+                        {% if experience %}
+                            <h1>Refine this chapter</h1>
+                            <p>Update the role details while preserving its place in the portfolio timeline.</p>
+                        {% else %}
+                            <h1>Add a new chapter</h1>
+                            <p>Record a role, organization, contribution, and the skills developed through it.</p>
+                        {% endif %}
                     </div>
 
-                    <form method="post" action="{% url 'main:create_experience' %}" class="portfolio-form">
+                    <form method="post" action="{% if experience %}{% url 'main:update_experience' experience.id %}{% else %}{% url 'main:create_experience' %}{% endif %}" class="portfolio-form">
                         {% csrf_token %}
 
                         {% for error in form.non_field_errors %}
@@ -34,7 +39,9 @@
                         {% endfor %}
 
                         <div class="form-actions">
-                            <button type="submit" class="form-primary-action">Add experience</button>
+                            <button type="submit" class="form-primary-action">
+                                {% if experience %}Save changes{% else %}Add experience{% endif %}
+                            </button>
                             <a href="{% url 'main:show_experience' %}" class="form-secondary-action">Cancel</a>
                         </div>
                     </form>

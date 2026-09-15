@@ -391,6 +391,35 @@ h3,
     font-weight: 600;
 }
 
+.experience-item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.experience-edit-action {
+    display: inline-flex;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    color: var(--white);
+    background-color: var(--accent-dark);
+    border: 1px solid var(--accent-dark);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.experience-edit-action:hover,
+.experience-edit-action:focus-visible {
+    color: var(--ink);
+    background-color: var(--highlight);
+    box-shadow: 3px 3px 0 var(--accent);
+    transform: translateY(-2px);
+}
+
 .experience-gallery {
     position: sticky;
     top: 6.5rem;
