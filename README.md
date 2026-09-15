@@ -328,7 +328,16 @@ Tombol **Add experience** ditambahkan pada heading halaman Experience tanpa meng
 
 Sebagai peningkatan UI/UX, komponen Django messages pada `base.html` kemudian dibuat dapat ditutup. Setiap success, warning, atau error notification memiliki tombol silang dengan label aksesibilitas `Dismiss notification`. JavaScript hanya menghapus elemen message terkait dari DOM ketika tombol ditekan, sehingga pengguna dapat mengembalikan layout halaman tanpa melakukan refresh. Tombol tersebut memiliki state hover dan keyboard focus yang jelas, sedangkan perubahan stylesheet dilengkapi cache-busting agar langsung termuat pada browser. Fitur ini dipisahkan dari alur create melalui commit tersendiri agar riwayat Git tetap modular.
 
-Dokumentasi berikutnya akan dilengkapi secara bertahap setelah fitur update, delete, JSON data delivery, deserialization, antarmuka pengelolaan, serta regression test Experience selesai diimplementasikan dan diverifikasi.
+#### (13.02 - 14.35 9/15/2026)
+Pada sesi pengembangan kali ini, saya melanjutkan alur pengelolaan Experience dengan menambahkan fitur update berbasis UUID. Named route `main:update_experience` menggunakan pola `/experience/<uuid:experience_id>/edit/`, kemudian view `update_experience` mengambil objek yang dituju melalui `get_object_or_404`. Pendekatan tersebut memastikan setiap card mengarah ke data yang tepat dan UUID yang tidak tersedia menghasilkan respons 404, bukan menyebabkan error server.
+
+View update menggunakan `ExperienceForm(request.POST or None, instance=experience)`. Argumen `instance` membuat form terhubung dengan objek yang sudah ada: pada request GET, nilai title, organization, period, display order, description, category, thumbnail, dan skills ditampilkan sebagai data awal; pada request POST yang valid, `form.save()` memperbarui baris database yang sama dan tidak membuat objek duplikat. Setelah penyimpanan berhasil, pengguna diarahkan kembali ke timeline dan menerima flash message `Experience updated successfully.` yang dapat ditutup melalui tombol silang.
+
+Template `experience_form.html` digunakan bersama oleh operasi create dan update agar struktur input, validasi, CSRF token, dan styling tidak diduplikasi. Keberadaan context `experience` menentukan judul halaman, deskripsi, form action, dan label tombol. Mode create menampilkan **Add a new chapter** dan **Add experience**, sedangkan mode update menampilkan **Refine this chapter** dan **Save changes**. Setiap card timeline memperoleh tombol **Edit experience** yang menggunakan named URL dengan UUID objek terkait. Styling tombol dibuat responsif serta tetap mengikuti warna, border, dan interaction state desain Experience sebelumnya.
+
+Pengujian manual dilakukan pada objek sementara yang dibuat melalui Chapter 1. Seluruh field lama berhasil terisi pada halaman edit, perubahan tersimpan pada objek yang sama, dan hasil terbaru tampil kembali di timeline tanpa menambah card baru. Validasi teknis melalui `python manage.py check`, `python manage.py test`, `python manage.py makemigrations --check`, dan `git diff --check` berhasil dijalankan. Sebanyak 27 test tetap lulus dan tidak terdapat perubahan model yang membutuhkan migration baru.
+
+Dokumentasi berikutnya akan dilengkapi secara bertahap setelah fitur delete, JSON data delivery, deserialization, antarmuka pencarian atau filtering, serta regression test Experience selesai diimplementasikan dan diverifikasi.
 
 
 ### Catatan Tugas 3
