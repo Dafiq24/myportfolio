@@ -4,6 +4,7 @@ from main.views import (
     create_certification,
     create_experience,
     delete_certification,
+    delete_experience,
     get_certifications_json,
     show_certification_detail,
     show_certifications,
@@ -22,6 +23,11 @@ urlpatterns = [
         "experience/<uuid:experience_id>/edit/",
         update_experience,
         name="update_experience",
+    ),
+    path(
+        "experience/<uuid:experience_id>/delete/",
+        delete_experience,
+        name="delete_experience",
     ),
     path(
         "api/certifications/",

@@ -19,7 +19,7 @@
                 <div class="experience-layout">
                     <div class="experience-timeline">
                         {% for experience in experience_list %}
-                            <article class="experience-item">
+                            <article class="experience-item" id="experience-{{ experience.id }}">
                                 <div class="timeline-marker" aria-hidden="true"></div>
                                 <p class="experience-period">{{ experience.period }}</p>
                                 <h3>{{ experience.title }}</h3>
@@ -32,8 +32,28 @@
                                 </ul>
                                 <div class="experience-item-actions">
                                     <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
+                                    <a class="experience-delete-action" href="#delete-experience-{{ experience.id }}">Delete experience</a>
                                 </div>
                             </article>
+                            <div class="lightbox delete-confirmation" id="delete-experience-{{ experience.id }}" role="dialog" aria-modal="true" aria-labelledby="delete-experience-title-{{ experience.id }}">
+                                <a class="lightbox-backdrop" href="#experience-{{ experience.id }}" aria-label="Cancel deletion"></a>
+                                <div class="lightbox-content delete-confirmation-content">
+                                    <a class="lightbox-close" href="#experience-{{ experience.id }}" aria-label="Cancel deletion">&times;</a>
+                                    <p class="section-kicker">Confirm deletion</p>
+                                    <h2 id="delete-experience-title-{{ experience.id }}">Delete this experience?</h2>
+                                    <p>
+                                        “{{ experience.title }}” will be permanently removed from the portfolio timeline.
+                                        This action cannot be undone.
+                                    </p>
+                                    <div class="delete-confirmation-actions">
+                                        <form method="post" action="{% url 'main:delete_experience' experience.id %}">
+                                            {% csrf_token %}
+                                            <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
+                                        </form>
+                                        <a class="certificate-secondary-action" href="#experience-{{ experience.id }}">Keep experience</a>
+                                    </div>
+                                </div>
+                            </div>
                         {% empty %}
                             <p class="empty-state">No experiences have been added yet.</p>
                         {% endfor %}

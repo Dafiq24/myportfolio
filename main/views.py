@@ -61,6 +61,18 @@ def update_experience(request, experience_id):
     return render(request, "experience_form.html", context)
 
 
+@require_POST
+def delete_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    experience_title = experience.title
+    experience.delete()
+    messages.success(
+        request,
+        f'Experience "{experience_title}" deleted successfully.',
+    )
+    return redirect("main:show_experience")
+
+
 def show_certifications(request):
     json_response = get_certifications_json(request)
     certifications = serializers.deserialize(

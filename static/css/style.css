@@ -398,7 +398,8 @@ h3,
     margin-top: 1rem;
 }
 
-.experience-edit-action {
+.experience-edit-action,
+.experience-delete-action {
     display: inline-flex;
     justify-content: center;
     padding: 0.5rem 0.75rem;
@@ -412,8 +413,16 @@ h3,
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.experience-delete-action {
+    color: var(--white);
+    background-color: #9f2d3f;
+    border-color: #9f2d3f;
+}
+
 .experience-edit-action:hover,
-.experience-edit-action:focus-visible {
+.experience-edit-action:focus-visible,
+.experience-delete-action:hover,
+.experience-delete-action:focus-visible {
     color: var(--ink);
     background-color: var(--highlight);
     box-shadow: 3px 3px 0 var(--accent);
@@ -955,7 +964,8 @@ h3,
 .certificate-primary-action,
 .certificate-secondary-action,
 .certificate-delete-action,
-.certificate-delete-confirm {
+.certificate-delete-confirm,
+.experience-delete-confirm {
     display: inline-flex;
     justify-content: center;
     padding: 0.65rem 0.9rem;
@@ -978,7 +988,8 @@ h3,
 }
 
 .certificate-delete-action,
-.certificate-delete-confirm {
+.certificate-delete-confirm,
+.experience-delete-confirm {
     color: var(--white);
     background-color: #9f2d3f;
 }
@@ -990,7 +1001,9 @@ h3,
 .certificate-delete-action:hover,
 .certificate-delete-action:focus-visible,
 .certificate-delete-confirm:hover,
-.certificate-delete-confirm:focus-visible {
+.certificate-delete-confirm:focus-visible,
+.experience-delete-confirm:hover,
+.experience-delete-confirm:focus-visible {
     transform: translateY(-2px);
     box-shadow: 4px 4px 0 #86a8cf;
 }
@@ -1693,7 +1706,8 @@ h3,
 
     .delete-confirmation-actions,
     .delete-confirmation-actions form,
-    .certificate-delete-confirm {
+    .certificate-delete-confirm,
+    .experience-delete-confirm {
         width: 100%;
     }
 
