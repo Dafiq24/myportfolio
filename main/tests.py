@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.forms import CertificationForm
+from main.forms import CertificationForm, ExperienceForm
 from main.models import Certification, Experience
 
 
@@ -79,6 +79,228 @@ class MainTest(TestCase):
 
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, self.experience.title)
+
+
+class ExperienceWorkflowTest(TestCase):
+    def setUp(self):
+        # Isolate assertions from portfolio records created by data migrations.
+        Experience.objects.all().delete()
+        self.data = {
+            "title": "Student Welfare Intern",
+            "organization": "BEM Fasilkom UI",
+            "period": "September 2025 - December 2025",
+            "display_order": 4,
+            "description": "Coordinated student advocacy activities.",
+            "category": "internship",
+            "thumbnail": "https://example.com/activity.jpg",
+            "skills": "Advocacy, Communication, Teamwork",
+        }
+        self.experience = Experience.objects.create(**self.data)
+        self.list_url = reverse("main:show_experience")
+        self.create_url = reverse("main:create_experience")
+        self.json_url = reverse("main:get_experiences_json")
+        self.update_url = reverse(
+            "main:update_experience", args=[self.experience.pk]
+        )
+        self.delete_url = reverse(
+            "main:delete_experience", args=[self.experience.pk]
+        )
+
+    def test_form_exposes_all_editable_portfolio_fields(self):
+        self.assertEqual(list(ExperienceForm().fields), list(self.data))
+
+    def test_optional_fields_can_be_empty(self):
+        data = {**self.data, "organization": "", "period": "",
+                "thumbnail": "", "skills": ""}
+        self.assertTrue(ExperienceForm(data).is_valid())
+
+    def test_form_rejects_invalid_category_order_and_thumbnail(self):
+        for field, value in (
+            ("category", "unknown"),
+            ("display_order", -1),
+            ("thumbnail", "not-a-url"),
+        ):
+            with self.subTest(field=field):
+                form = ExperienceForm({**self.data, field: value})
+                self.assertFalse(form.is_valid())
+                self.assertIn(field, form.errors)
+
+    def test_create_page_uses_shared_template_and_csrf(self):
+        response = self.client.get(self.create_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+        self.assertTemplateUsed(response, "base.html")
+        self.assertContains(response, "csrfmiddlewaretoken")
+        self.assertContains(response, "Add experience")
+
+    def test_valid_create_saves_all_fields_and_success_feedback(self):
+        response = self.client.post(
+            self.create_url, {**self.data, "title": "Teaching Staff"}, follow=True
+        )
+        self.assertRedirects(response, self.list_url)
+        created = Experience.objects.get(title="Teaching Staff")
+        for field, value in self.data.items():
+            if field != "title":
+                self.assertEqual(getattr(created, field), value)
+        self.assertEqual(Experience.objects.count(), 2)
+        self.assertContains(response, "Experience added successfully.")
+        self.assertContains(response, "Dismiss notification")
+
+    def test_invalid_create_preserves_count_and_input(self):
+        response = self.client.post(self.create_url, {**self.data, "title": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context["form"], "title", "This field is required.")
+        self.assertEqual(Experience.objects.count(), 1)
+        self.assertContains(response, self.experience.organization)
+
+    def test_update_page_prefills_every_field(self):
+        response = self.client.get(self.update_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+        self.assertContains(response, "Save changes")
+        form = response.context["form"]
+        self.assertEqual(form.instance.pk, self.experience.pk)
+        for field, value in self.data.items():
+            self.assertEqual(form.initial[field], value)
+
+    def test_update_changes_same_object_without_duplicates(self):
+        original_pk = self.experience.pk
+        original_started_at = self.experience.started_at
+        response = self.client.post(
+            self.update_url,
+            {**self.data, "title": "Updated Role", "skills": "Django, Testing"},
+            follow=True,
+        )
+        self.assertRedirects(response, self.list_url)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.pk, original_pk)
+        self.assertEqual(self.experience.started_at, original_started_at)
+        self.assertEqual(self.experience.title, "Updated Role")
+        self.assertEqual(self.experience.skill_list, ["Django", "Testing"])
+        self.assertEqual(Experience.objects.count(), 1)
+        self.assertContains(response, "Experience updated successfully.")
+
+    def test_invalid_update_does_not_modify_database(self):
+        response = self.client.post(self.update_url, {**self.data, "title": ""})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("title", response.context["form"].errors)
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, self.data["title"])
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_unknown_update_returns_404_for_get_and_post(self):
+        url = reverse("main:update_experience", args=[uuid.uuid4()])
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.post(url, self.data).status_code, 404)
+
+    def test_mutations_require_csrf_tokens(self):
+        client = Client(enforce_csrf_checks=True)
+        for url in (self.create_url, self.update_url, self.delete_url):
+            with self.subTest(url=url):
+                self.assertEqual(client.post(url, self.data).status_code, 403)
+        self.experience.refresh_from_db()
+        self.assertEqual(Experience.objects.count(), 1)
+        self.assertEqual(self.experience.title, self.data["title"])
+
+    def test_delete_rejects_non_post_methods(self):
+        for method in ("get", "put", "patch", "delete", "head"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(self.delete_url)
+                self.assertEqual(response.status_code, 405)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_delete_with_valid_csrf_removes_only_target(self):
+        other = Experience.objects.create(**{**self.data, "title": "Keep this role"})
+        client = Client(enforce_csrf_checks=True)
+        client.get(self.list_url)
+        token = client.cookies["csrftoken"].value
+        response = client.post(
+            self.delete_url, {"csrfmiddlewaretoken": token}, follow=True
+        )
+        self.assertRedirects(response, self.list_url)
+        self.assertFalse(Experience.objects.filter(pk=self.experience.pk).exists())
+        self.assertTrue(Experience.objects.filter(pk=other.pk).exists())
+        self.assertContains(response, "deleted successfully.")
+
+    def test_unknown_delete_returns_404(self):
+        url = reverse("main:delete_experience", args=[uuid.uuid4()])
+        self.assertEqual(self.client.post(url).status_code, 404)
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_timeline_links_and_confirmation_identify_target(self):
+        response = self.client.get(self.list_url)
+        self.assertContains(response, f'href="{self.create_url}"')
+        self.assertContains(response, f'href="{self.update_url}"')
+        self.assertContains(response, f'action="{self.delete_url}"')
+        self.assertContains(response, f'id="delete-experience-{self.experience.pk}"')
+        self.assertContains(response, "Keep experience")
+        self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_json_returns_identity_fields_and_model_ordering(self):
+        earlier = Experience.objects.create(
+            **{**self.data, "title": "Earlier Role", "display_order": 1}
+        )
+        response = self.client.get(self.json_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        payload = response.json()
+        self.assertEqual([item["pk"] for item in payload],
+                         [str(earlier.pk), str(self.experience.pk)])
+        self.assertEqual(payload[1]["model"], "main.experience")
+        for field, value in self.data.items():
+            self.assertEqual(payload[1]["fields"][field], value)
+
+    def test_json_search_matches_title_or_organization_case_insensitively(self):
+        for query in ("  wElFaRe  ", "bEm"):
+            with self.subTest(query=query):
+                payload = self.client.get(self.json_url, {"q": query}).json()
+                self.assertEqual([item["pk"] for item in payload], [str(self.experience.pk)])
+
+    def test_json_combines_search_and_category(self):
+        Experience.objects.create(
+            **{**self.data, "title": "Another BEM Role", "category": "volunteer"}
+        )
+        payload = self.client.get(
+            self.json_url, {"q": "BEM", "category": "internship"}
+        ).json()
+        self.assertEqual([item["pk"] for item in payload], [str(self.experience.pk)])
+
+    def test_json_empty_and_unknown_filters_return_empty_arrays(self):
+        for filters in ({"q": "No such role"}, {"category": "unknown"}):
+            with self.subTest(filters=filters):
+                response = self.client.get(self.json_url, filters)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), [])
+        Experience.objects.all().delete()
+        self.assertEqual(self.client.get(self.json_url).json(), [])
+
+    def test_timeline_renders_filtered_deserialized_objects(self):
+        other = Experience.objects.create(
+            **{**self.data, "title": "Excluded Role", "category": "research"}
+        )
+        response = self.client.get(
+            self.list_url, {"q": " BEM ", "category": "internship"}
+        )
+        objects = response.context["experience_list"]
+        self.assertIsInstance(objects, list)
+        self.assertEqual([obj.pk for obj in objects], [self.experience.pk])
+        self.assertEqual(objects[0].skill_list, ["Advocacy", "Communication", "Teamwork"])
+        self.assertContains(response, self.experience.title)
+        self.assertNotContains(response, other.title)
+        self.assertContains(response, 'value="BEM"')
+        self.assertContains(response, 'value="internship" selected')
+        self.assertContains(response, "1 experience found")
+        self.assertContains(response, "Clear filters")
+
+    def test_filtered_empty_state_differs_from_empty_database(self):
+        response = self.client.get(self.list_url, {"q": "Missing"})
+        self.assertContains(response, "No experiences match these filters.")
+        self.assertContains(response, "0 experiences found")
+        self.assertNotContains(response, "No experiences have been added yet.")
+        Experience.objects.all().delete()
+        response = self.client.get(self.list_url)
+        self.assertContains(response, "No experiences have been added yet.")
+        self.assertNotContains(response, "Clear filters")
 
 
 class CertificationTest(TestCase):
