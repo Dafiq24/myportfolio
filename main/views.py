@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core import serializers
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -23,11 +24,34 @@ def show_main(request):
 
 
 def show_experience(request):
+    json_response = get_experiences_json(request)
+    experiences = serializers.deserialize("json", json_response.content.decode("utf-8"))
     context = {
         "name": "Sultan Noor Dafiq",
-        "experience_list": Experience.objects.all(),
+        "experience_list": [experience.object for experience in experiences],
+        "experience_query": request.GET.get("q", "").strip(),
+        "category_query": request.GET.get("category", "").strip(),
+        "experience_categories": Experience.EXPERIENCE_CHOICES,
     }
     return render(request, "experience.html", context)
+
+
+def get_experiences_json(request):
+    experiences = Experience.objects.all()
+    query = request.GET.get("q", "").strip()
+    category = request.GET.get("category", "").strip()
+
+    if query:
+        experiences = experiences.filter(
+            Q(title__icontains=query) | Q(organization__icontains=query)
+        )
+    if category:
+        experiences = experiences.filter(category=category)
+
+    return HttpResponse(
+        serializers.serialize("json", experiences),
+        content_type="application/json",
+    )
 
 
 def create_experience(request):

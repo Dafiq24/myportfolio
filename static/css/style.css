@@ -1907,6 +1907,73 @@ h3,
     }
 }
 
+.experience-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.experience-search-field {
+    display: grid;
+    gap: 0.4rem;
+    flex: 1 1 220px;
+}
+
+.experience-search label {
+    font-weight: 700;
+}
+
+.experience-search input,
+.experience-search select,
+.experience-search button,
+.experience-search > a {
+    min-height: 46px;
+    padding: 0.65rem 0.9rem;
+    border: 2px solid #5084b4;
+    border-radius: 4px;
+    font: inherit;
+}
+
+.experience-search input,
+.experience-search select {
+    width: 100%;
+    min-width: 0;
+    background: #fff;
+    color: #061b36;
+}
+
+.experience-search button,
+.experience-search > a {
+    background: #082957;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.experience-search :is(input, select, button, a):focus-visible {
+    outline: 3px solid #976cff;
+    outline-offset: 3px;
+}
+
+.experience-search button:hover,
+.experience-search > a:hover {
+    background: #174578;
+}
+
+.experience-results {
+    margin: 0 0 1.25rem;
+    font-weight: 700;
+}
+
+@media (max-width: 600px) {
+    .experience-search-field {
+        flex-basis: 100%;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;

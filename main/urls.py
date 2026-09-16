@@ -6,6 +6,7 @@ from main.views import (
     delete_certification,
     delete_experience,
     get_certifications_json,
+    get_experiences_json,
     show_certification_detail,
     show_certifications,
     show_experience,
@@ -18,6 +19,7 @@ app_name = "main"
 urlpatterns = [
     path("", show_main, name="show_main"),
     path("experience/", show_experience, name="show_experience"),
+    path("api/experiences/", get_experiences_json, name="get_experiences_json"),
     path("experience/add/", create_experience, name="create_experience"),
     path(
         "experience/<uuid:experience_id>/edit/",

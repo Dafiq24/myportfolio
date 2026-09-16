@@ -16,6 +16,28 @@
                         Add experience
                     </a>
                 </div>
+                <form class="experience-search" method="get" action="{% url 'main:show_experience' %}" role="search">
+                    <div class="experience-search-field">
+                        <label for="experience-query">Search by role or organization</label>
+                        <input id="experience-query" type="search" name="q" value="{{ experience_query }}" placeholder="e.g. Teaching or BEM">
+                    </div>
+                    <div class="experience-search-field">
+                        <label for="experience-category">Category</label>
+                        <select id="experience-category" name="category">
+                            <option value="">All categories</option>
+                            {% for value, label in experience_categories %}
+                                <option value="{{ value }}"{% if category_query == value %} selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit">Search</button>
+                    {% if experience_query or category_query %}
+                        <a href="{% url 'main:show_experience' %}">Clear filters</a>
+                    {% endif %}
+                </form>
+                {% if experience_query or category_query %}
+                    <p class="experience-results" role="status">{{ experience_list|length }} experience{{ experience_list|length|pluralize }} found{% if experience_query %} for “{{ experience_query }}”{% endif %}.</p>
+                {% endif %}
                 <div class="experience-layout">
                     <div class="experience-timeline">
                         {% for experience in experience_list %}
@@ -55,7 +77,11 @@
                                 </div>
                             </div>
                         {% empty %}
-                            <p class="empty-state">No experiences have been added yet.</p>
+                            {% if experience_query or category_query %}
+                                <p class="empty-state">No experiences match these filters. Try another role, organization, or category.</p>
+                            {% else %}
+                                <p class="empty-state">No experiences have been added yet.</p>
+                            {% endif %}
                         {% endfor %}
                     </div>
                     <aside class="experience-gallery" aria-labelledby="gallery-title">
