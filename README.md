@@ -361,7 +361,7 @@ Pengujian manual dilakukan pada endpoint JSON dan halaman timeline. `/api/experi
 
 Validasi teknis menunjukkan 27 test yang sudah ada tetap lulus pada Django 5.0, system check tidak menemukan masalah, `makemigrations --check` tidak mendeteksi perubahan model, dan `git diff --check` tidak menemukan whitespace error. Pemeriksaan request internal tambahan berhasil memverifikasi JSON, ordering, kombinasi filter, rendering hasil deserialization, dan contextual empty state tanpa mengubah data asli. Karena interpreter dasar virtualenv tidak ditemukan pada lingkungan eksekusi pendamping, pemeriksaan tersebut dijalankan menggunakan runtime Python bawaan dengan dependensi Django proyek; konfigurasi virtualenv pengguna tidak diubah. Pengujian otomatis khusus seluruh workflow Experience akan dilengkapi pada chapter regression test.
 
-#### (22.05 - 22. 9/16/2026)
+#### (22.05 - 23.02 9/16/2026)
 Pada sesi ini, saya menambahkan class `ExperienceWorkflowTest` di `main/tests.py` untuk menguji seluruh alur pengelolaan Experience yang dikembangkan pada sesi sebelumnya. Sebanyak 21 test baru melengkapi 27 test yang sudah ada, sehingga total regression suite menjadi 48 test. Setiap test menggunakan database test Django yang terpisah dari database portofolio. Data Experience bawaan migration dibersihkan hanya pada setup database test, kemudian fixture khusus dibuat agar jumlah objek, filtering, dan ordering dapat diperiksa secara deterministik tanpa bergantung pada empat Experience asli.
 
 Pengujian `ExperienceForm` memastikan seluruh field portofolio yang dapat diisi tersedia, field opsional menerima nilai kosong, dan input kategori tidak dikenal, urutan negatif, serta URL thumbnail tidak valid ditolak. Alur create diperiksa melalui halaman form yang memperluas `base.html` dan memuat CSRF token, penyimpanan seluruh field pada submission valid, redirect ke timeline, serta success notification yang memiliki kontrol dismiss. Submission invalid harus menampilkan error dan mempertahankan input tanpa menambah objek baru.
@@ -374,15 +374,78 @@ Pengujian JSON mencakup content type `application/json`, identitas model, UUID, 
 
 Seluruh 48 test berhasil dijalankan tanpa failure pada Django 5.0 melalui runtime pendamping dengan dependensi proyek. Django system check yang berjalan bersama test tidak menemukan masalah, dan `git diff --check` tidak menemukan whitespace error. Warning direktori `staticfiles` tetap muncul karena hasil collectstatic belum tersedia pada lingkungan test, tetapi tidak menyebabkan test gagal. Assertion terhadap HTML memverifikasi keberadaan kontrol dan pesan, bukan membuktikan seluruh perilaku browser seperti keyboard focus, pembatalan modal, atau penutupan notifikasi; pemeriksaan visual dan interaksi manual tetap diperlukan. Cakupan CSRF dan method restriction juga tidak dianggap sebagai pengganti authentication maupun authorization pengguna.
 
+#### (07.22 - 08.25 9/17/2026)
+Pada sesi finalisasi, saya melengkapi catatan penggunaan, jawaban pertanyaan reflektif, transparansi penggunaan AI, serta checklist validasi dan pengumpulan Tugas Individu 3. Implementasi menggunakan Experience sebagai bagian portofolio berbeda dari Certification pada Tutorial 03. Halaman-halaman portofolio dan form menggunakan root template `base.html`, sementara Experience memiliki ModelForm, create, update, delete, JSON delivery, dan rendering setelah deserialization. Peningkatan UI/UX meliputi kombinasi pencarian peran atau organisasi dengan kategori, jumlah hasil, contextual empty state, confirmation modal, serta notifikasi yang dapat ditutup.
+
+Finalisasi juga mencatat batasan yang tidak boleh disamakan dengan keberhasilan fitur. CSRF token dan pembatasan method melindungi alur request, tetapi tidak membatasi siapa yang boleh mengubah data. CRUD pada tahap pembelajaran ini belum memiliki authentication dan authorization khusus. Selain itu, 48 test yang lulus bukan jaminan bahwa seluruh interaksi browser dan deployment PWS telah diperiksa. Pemeriksaan endpoint PWS melalui alat web pendamping dibatasi oleh pemeriksaan keamanan URL, sehingga audit deployment terakhir harus dilakukan secara manual sebelum submit. Dokumen tidak mengklaim pemeriksaan deployment tersebut sudah selesai.
+
 
 ### Catatan Tugas 3
 
-Catatan teknis dan petunjuk penggunaan Tugas 3 akan dilengkapi setelah seluruh alur pengelolaan data Experience selesai.
+#### Menjalankan proyek
+
+Dari direktori proyek, aktifkan virtual environment pada terminal PowerShell yang sama, instal dependensi, dan terapkan migration:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\env\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
+
+Pada fresh clone, buat virtual environment terlebih dahulu menggunakan `python -m venv env`. Execution policy pada scope Process hanya berlaku untuk terminal saat ini. Konfigurasi environment lokal mengikuti petunjuk setup proyek pada bagian sebelumnya; jangan commit file `.env`, kredensial, atau database lokal. Migration memulihkan data awal pada database baru, sedangkan perubahan melalui form disimpan pada database environment yang sedang digunakan.
+
+#### Route dan alur penggunaan
+
+| Alamat | Fungsi |
+| --- | --- |
+| `/experience/` | Timeline dari hasil deserialization JSON, dengan search/filter |
+| `/experience/add/` | Form create Experience |
+| `/experience/<uuid>/edit/` | Form update objek yang sama |
+| `/experience/<uuid>/delete/` | Endpoint delete khusus POST; gunakan confirmation modal |
+| `/api/experiences/` | JSON seluruh Experience dalam urutan model |
+| `/api/experiences/?q=BEM&category=internship` | Contoh kombinasi pencarian dan kategori |
+
+Klik **Add experience** untuk menambahkan data atau **Edit experience** pada card untuk memperbaruinya. Nilai `display_order` yang lebih kecil muncul lebih awal. `thumbnail` adalah URL opsional yang disimpan dan disertakan dalam JSON; galeri dokumentasi yang sudah ada tetap dipertahankan dan tidak otomatis diganti oleh field tersebut. Skills dipisahkan dengan koma dan ditampilkan sebagai tag. Input invalid menampilkan error tanpa menyimpan perubahan. UUID yang tidak tersedia menghasilkan 404.
+
+**Delete experience** membuka modal konfirmasi; **Keep experience**, tombol silang, atau backdrop membatalkan tindakan. Hanya **Yes, delete it** yang mengirim POST dengan CSRF token. Request GET langsung ke endpoint delete menghasilkan 405, bukan menghapus data. Penghapusan bersifat permanen dan tidak memiliki undo. Search menggunakan GET: ketik peran atau organisasi, pilih kategori, lalu tekan **Search**. **Clear filters** mengembalikan daftar lengkap. Notifikasi Django dapat ditutup tanpa refresh.
+
+#### Validasi dan batasan keamanan
+
+```powershell
+python manage.py check
+python manage.py test
+python manage.py makemigrations --check
+python -m pip check
+git diff --check
+```
+
+Regression suite terakhir berisi 48 test yang lulus, termasuk 21 test workflow Experience. Test memakai database terpisah. Warning direktori `staticfiles` pada test tidak membuat suite gagal; untuk deployment, pastikan konfigurasi static file dan proses collectstatic berjalan sesuai environment. Kelulusan tes tidak menggantikan pemeriksaan visual pada desktop dan mobile.
+
+CRUD saat ini belum dibatasi berdasarkan identitas atau peran pengguna. UUID bukan mekanisme authorization, dan CSRF bukan authentication. Sebelum digunakan sebagai pengelola portofolio publik sungguhan, perlu pembatasan akses create/update/delete, pengujian permission, serta backup data. Jangan menganggap confirmation modal sebagai kontrol keamanan server.
 
 
 ### Transparansi Penggunaan AI Tugas 3
 
-Transparansi penggunaan AI, strategi prompting, kontribusi spesifik, keterbatasan hasil AI, dan perbaikan manual akan dilengkapi pada tahap finalisasi Tugas 3.
+Saya menggunakan Codex sebagai alat bantu membaca ketentuan, merencanakan chapter, mengimplementasikan perubahan, menyusun regression test, dan menyiapkan dokumentasi. AI membantu pembuatan `ExperienceForm`, view dan named route CRUD, JSON serialization/deserialization, search/filter, confirmation modal, dismissible messages, serta class `ExperienceWorkflowTest`. Saya tetap menentukan bagian portofolio yang dipilih, mempertahankan desain lama, mencoba alur melalui browser, membaca hasil validasi, dan menjalankan commit serta push sendiri.
+
+Strategi prompting dilakukan bertahap: memilih Experience sebagai bagian lain dari Tutorial 03, menyelesaikan create/update/delete secara terpisah, menambahkan JSON dan filtering, kemudian menguji regresi sebelum finalisasi. Saya meminta perubahan modular, desain tetap konsisten, dan dokumentasi menggunakan format judul serta rentang waktu tugas sebelumnya. Log ringkas berikut merupakan rangkuman percakapan, bukan transkrip lengkap:
+
+| Tahap | Arahan dan tindak lanjut |
+| --- | --- |
+| Create | Terapkan form pada Experience; uji objek sementara di timeline |
+| Feedback | Tambahkan tombol silang agar notifikasi dapat ditutup |
+| Update/delete | Pertahankan UUID saat edit; gunakan konfirmasi dan POST saat delete |
+| JSON/search | Sajikan JSON dan deserialisasikan sebelum rendering; uji BEM + Internship |
+| Regression | Uji input valid/invalid, CSRF, 404/405, ordering, dan hasil filter |
+| Dokumentasi | Isi placeholder pada heading waktu pengguna, lalu commit terpisah |
+
+Keterbatasan AI terlihat pada penempatan dokumentasi delete: AI sempat menambahkan heading Chapter 3 tersendiri tetapi membiarkan placeholder di bawah rentang waktu yang saya buat. Saya menunjukkan kesalahan tersebut melalui screenshot. Dokumentasi kemudian dipindahkan ke heading waktu yang benar dan commit lokal diamend sebelum push. Hal ini menunjukkan bahwa hasil yang tampak lengkap belum tentu sesuai struktur yang diminta; diff dan placeholder harus diperiksa sebelum commit.
+
+Pada validasi, interpreter dasar virtualenv tidak ditemukan oleh lingkungan pendamping. AI memakai runtime Python bawaan dengan dependensi Django proyek tanpa mengubah konfigurasi virtualenv saya. Saya kemudian menjalankan suite pada terminal lokal dan memperoleh 48 test lulus. Perbedaan lingkungan harus dinyatakan, bukan disembunyikan sebagai hasil eksekusi yang identik. AI juga tidak dapat memverifikasi PWS melalui alat web internal, sehingga keberhasilan test lokal dan push tidak dipakai sebagai klaim bahwa deployment sudah lolos audit terakhir.
+
+Secara teknis, assertion HTML tidak membuktikan seluruh interaksi browser, dan banyaknya test bukan ukuran tunggal kualitas. Modal berbasis fragment/CSS belum membuktikan focus trapping atau perilaku Escape seperti dialog JavaScript penuh. Alur serialization/deserialization internal sengaja mengikuti materi tugas, tetapi menambah pemrosesan dibanding rendering queryset langsung; untuk pengembangan berikutnya, pemisahan logika query bersama dan strategi delivery dapat dievaluasi berdasarkan kebutuhan. Fitur thumbnail juga belum menjadi galeri dinamis. Batasan akses CRUD tetap perlu ditangani ketika authentication dipelajari. Saya meninjau keluaran AI sebagai usulan yang perlu diperiksa, bukan menerima semua klaim keamanan, aksesibilitas, maupun kesiapan produksi secara otomatis.
 
 
 ### Pertanyaan Reflektif Tugas 3
@@ -395,8 +458,8 @@ Transparansi penggunaan AI, strategi prompting, kontribusi spesifik, keterbatasa
 
 ### Tugas 3
 
-1. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
+1. Saya menggunakan `ModelForm` karena struktur input dan validasinya terhubung langsung dengan model. Pada Experience, pilihan kategori, batas panjang teks, tipe URL, dan field urutan tidak perlu didefinisikan ulang sebagai aturan terpisah pada HTML dan view. Saya tetap menyesuaikan label, widget, serta help text agar form mudah digunakan. Pada create, `form.save()` membuat objek; pada update, `instance=experience` mengisi nilai awal dan menyimpan perubahan ke objek yang sama, sehingga tidak terjadi duplikasi. ModelForm bukan berarti seluruh HTML hilang: template masih diperlukan untuk layout, error, dan tombol. `{% csrf_token %}` wajib pada form POST karena browser dapat membawa cookie secara otomatis ketika mengirim request, termasuk request yang dipicu dari situs lain. Token yang diperiksa middleware membantu mencegah request lintas situs yang tidak sah. Saya memverifikasinya dengan client yang mengaktifkan CSRF checks: POST tanpa token ditolak dengan 403. Namun, CSRF token tidak menentukan siapa pemilik data dan tidak menggantikan authentication atau authorization.
 
-2. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
+2. JSON lebih praktis untuk pertukaran data aplikasi web karena struktur object, array, string, angka, boolean, dan null dekat dengan representasi data yang digunakan JavaScript. Payload umumnya lebih ringkas daripada XML yang memakai pasangan tag, dan browser dapat memprosesnya melalui `JSON.parse` atau response JSON tanpa parsing elemen XML. Pada proyek saya, kumpulan Experience dapat direpresentasikan sebagai array dengan identitas objek dan field yang jelas, sehingga hasil search/filter mudah diperiksa atau digunakan oleh konsumen API. Ini bukan berarti JSON selalu lebih baik: XML relevan untuk dokumen dengan struktur campuran, namespace, atau integrasi yang memang mensyaratkan XML. JSON juga tetap membutuhkan validasi, penanganan tipe khusus, serta pemilihan field yang aman. Pilihan JSON pada tugas ini sesuai kebutuhan pertukaran data portofolio, bukan anggapan bahwa semua sistem harus meninggalkan XML.
 
-3. Jawaban refleksi pribadi akan dilengkapi setelah seluruh implementasi dan validasi Tugas 3 selesai.
+3. Ketika browser membuka `/api/experiences/`, routing proyek meneruskan request ke `main/urls.py`, lalu named route `main:get_experiences_json` menjalankan view `get_experiences_json`. View membaca parameter `q` dan `category`, mengambil queryset Experience melalui ORM, dan menerapkan filter bila diperlukan. Queryset tetap mengikuti ordering model. `serializers.serialize("json", experiences)` mengubah instance Django menjadi teks JSON berisi nama model, UUID pada `pk`, dan nilai field pada `fields`. Teks tersebut dikembalikan melalui `HttpResponse` dengan content type `application/json`. Serialization diperlukan karena queryset dan instance model merupakan objek Python yang tidak dapat langsung dikirim sebagai format pertukaran data; UUID dan timestamp juga perlu direpresentasikan dalam bentuk yang dapat dibaca konsumen JSON. Pada `/experience/`, `show_experience` memanggil fungsi delivery yang sama secara internal, mendekode response, lalu menjalankan `serializers.deserialize`. Atribut `.object` diambil untuk membentuk list context yang dirender template, tanpa menyimpan ulang objek tersebut. Dengan demikian, data yang tampil telah melewati JSON dan deserialization, tetapi browser tidak melakukan request API kedua untuk membentuk timeline. Serialization bukan enkripsi dan bukan kontrol permission, sehingga field yang dikirim dan akses endpoint tetap harus dievaluasi saat aplikasi berkembang.
