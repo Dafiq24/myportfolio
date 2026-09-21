@@ -5,6 +5,7 @@ from django.core import serializers
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from main.forms import CertificationForm, ExperienceForm
@@ -29,7 +30,15 @@ def login_user(request):
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
         login(request, form.get_user())
-        return redirect("main:show_main")
+        response = redirect("main:show_main")
+        response.set_cookie(
+            "last_login",
+            timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            httponly=True,
+            secure=request.is_secure(),
+            samesite="Lax",
+        )
+        return response
 
     return render(
         request,
@@ -40,7 +49,9 @@ def login_user(request):
 
 def logout_user(request):
     logout(request)
-    return redirect("main:show_main")
+    response = redirect("main:show_main")
+    response.delete_cookie("last_login", samesite="Lax")
+    return response
 
 def show_main(request):
     context = {
@@ -52,6 +63,10 @@ def show_main(request):
             "interested in solving business challenges through strategic "
             "thinking, data-driven analysis, and technology. Experienced "
             "in educational programs, student advocacy, and project coordination."
+        ),
+        "last_login": request.COOKIES.get(
+            "last_login",
+            "No login session has been recorded in this browser.",
         ),
     }
     return render(request, "index.html", context)

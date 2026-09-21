@@ -91,15 +91,52 @@ class AuthenticationWorkflowTest(TestCase):
         self.assertContains(response, f'href="{self.logout_url}"')
         self.assertNotContains(response, f'href="{self.register_url}"')
 
+    def test_successful_login_sets_hardened_last_login_cookie(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": self.password},
+        )
+        cookie = response.cookies["last_login"]
+        self.assertRegex(
+            cookie.value,
+            r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC$",
+        )
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["samesite"], "Lax")
+
+    def test_failed_login_does_not_set_last_login_cookie(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": "wrong-password"},
+        )
+        self.assertNotIn("last_login", response.cookies)
+
+    def test_profile_reads_last_login_cookie_with_safe_default(self):
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(
+            response,
+            "No login session has been recorded in this browser.",
+        )
+        self.client.cookies["last_login"] = "2026-09-21 12:34:56 UTC"
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, "2026-09-21 12:34:56 UTC")
+
     def test_logout_clears_authentication_without_deleting_account(self):
         self.client.login(username=self.user.username, password=self.password)
-        response = self.client.get(self.logout_url, follow=True)
-        self.assertRedirects(response, reverse("main:show_main"))
+        self.client.cookies["last_login"] = "2026-09-21 12:34:56 UTC"
+        response = self.client.get(self.logout_url)
+        self.assertRedirects(
+            response,
+            reverse("main:show_main"),
+            fetch_redirect_response=False,
+        )
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertTrue(
             self.user_model.objects.filter(pk=self.user.pk).exists()
         )
-        self.assertContains(response, f'href="{self.login_url}"')
+        self.assertEqual(response.cookies["last_login"]["max-age"], 0)
+        profile_response = self.client.get(reverse("main:show_main"))
+        self.assertContains(profile_response, f'href="{self.login_url}"')
 
     def test_authentication_forms_require_csrf_token(self):
         csrf_client = Client(enforce_csrf_checks=True)
