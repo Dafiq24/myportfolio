@@ -40,6 +40,7 @@
                         </dl>
 
                         <div class="certificate-detail-actions">
+                            {% include "components/certification_star.html" with certification=certification %}
                             {% if certification.credential_url %}
                                 <a class="certificate-primary-action" href="{{ certification.credential_url }}" target="_blank" rel="noopener noreferrer">Open credential</a>
                             {% endif %}

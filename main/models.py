@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -65,6 +66,11 @@ class Certification(models.Model):
     credential_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False)
+    starred_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="starred_certifications",
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-is_featured", "-issued_year", "title"]

@@ -756,6 +756,94 @@ class CertificationTest(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
+    def test_anonymous_star_redirects_to_login_without_changing_data(self):
+        star_url = reverse(
+            "main:toggle_certification_star", args=[self.certification.pk]
+        )
+        response = self.client.post(star_url)
+        self.assertRedirects(
+            response,
+            f'{reverse("main:login")}?next={star_url}',
+        )
+        self.assertEqual(self.certification.starred_by.count(), 0)
+
+    def test_authenticated_star_endpoint_is_post_only(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.get(
+            reverse("main:toggle_certification_star", args=[self.certification.pk])
+        )
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(self.certification.starred_by.count(), 0)
+
+    def test_certification_star_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.regular_user)
+        response = client.post(
+            reverse("main:toggle_certification_star", args=[self.certification.pk])
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.certification.starred_by.count(), 0)
+
+    def test_regular_user_can_toggle_one_star(self):
+        self.client.force_login(self.regular_user)
+        star_url = reverse(
+            "main:toggle_certification_star", args=[self.certification.pk]
+        )
+        detail_url = reverse(
+            "main:show_certification_detail", args=[self.certification.pk]
+        )
+
+        response = self.client.post(star_url)
+        self.assertRedirects(response, detail_url)
+        self.assertEqual(self.certification.starred_by.count(), 1)
+        self.assertTrue(self.certification.starred_by.filter(pk=self.regular_user.pk).exists())
+
+        response = self.client.post(star_url)
+        self.assertRedirects(response, detail_url)
+        self.assertEqual(self.certification.starred_by.count(), 0)
+
+    def test_multiple_users_have_independent_stars(self):
+        self.certification.starred_by.add(self.regular_user, self.owner)
+        self.certification.starred_by.add(self.regular_user)
+        self.assertEqual(self.certification.starred_by.count(), 2)
+        self.assertQuerySetEqual(
+            self.regular_user.starred_certifications.all(),
+            [self.certification],
+        )
+
+    def test_star_component_displays_count_and_current_user_state(self):
+        detail_url = reverse(
+            "main:show_certification_detail", args=[self.certification.pk]
+        )
+        anonymous_response = self.client.get(detail_url)
+        self.assertContains(anonymous_response, "Star")
+        self.assertNotContains(anonymous_response, "Unstar")
+        self.assertContains(anonymous_response, 'aria-label="0 stars"')
+
+        self.certification.starred_by.add(self.regular_user)
+        self.client.force_login(self.regular_user)
+        authenticated_response = self.client.get(detail_url)
+        self.assertContains(authenticated_response, "Unstar")
+        self.assertContains(authenticated_response, "is-starred")
+        self.assertContains(authenticated_response, 'aria-label="1 stars"')
+
+    def test_certification_json_uses_user_natural_keys(self):
+        self.certification.starred_by.add(self.regular_user, self.owner)
+        payload = self.client.get(reverse("main:get_certifications_json")).json()
+        starred_by = payload[0]["fields"]["starred_by"]
+        self.assertCountEqual(
+            starred_by,
+            [[self.regular_user.username], [self.owner.username]],
+        )
+        self.assertNotIn(self.regular_user.pk, starred_by)
+
+    def test_unknown_certification_star_returns_404_for_logged_in_user(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.post(
+            reverse("main:toggle_certification_star", args=[uuid.uuid4()])
+        )
+        self.assertEqual(response.status_code, 404)
+
     def test_anonymous_users_are_redirected_before_mutating_certifications(self):
         create_response = self.client.get(reverse("main:create_certification"))
         delete_response = self.client.post(

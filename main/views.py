@@ -172,7 +172,11 @@ def get_certifications_json(request):
     if title_query:
         certifications = certifications.filter(title__icontains=title_query)
 
-    certifications_json = serializers.serialize("json", certifications)
+    certifications_json = serializers.serialize(
+        "json",
+        certifications,
+        use_natural_foreign_keys=True,
+    )
     return HttpResponse(certifications_json, content_type="application/json")
 
 
@@ -208,6 +212,17 @@ def delete_certification(request, certification_id):
         f'Certification "{certification_title}" deleted successfully.',
     )
     return redirect("main:show_certifications")
+
+
+@login_required(login_url="/login/")
+@require_POST
+def toggle_certification_star(request, certification_id):
+    certification = get_object_or_404(Certification, pk=certification_id)
+    if certification.starred_by.filter(pk=request.user.pk).exists():
+        certification.starred_by.remove(request.user)
+    else:
+        certification.starred_by.add(request.user)
+    return redirect("main:show_certification_detail", certification_id=certification.id)
 
 
 def show_certification_detail(request, certification_id):
