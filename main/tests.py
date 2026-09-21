@@ -1,12 +1,124 @@
 import uuid
 
 from django.contrib import admin
+from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from main.forms import CertificationForm, ExperienceForm
 from main.models import Certification, Experience
+
+
+class AuthenticationWorkflowTest(TestCase):
+    def setUp(self):
+        self.user_model = get_user_model()
+        self.password = "SecureTutorial4Pass!"
+        self.user = self.user_model.objects.create_user(
+            username="portfolio_reader",
+            password=self.password,
+        )
+        self.register_url = reverse("main:register")
+        self.login_url = reverse("main:login")
+        self.logout_url = reverse("main:logout")
+
+    def test_anonymous_navbar_shows_login_and_register(self):
+        response = self.client.get(reverse("main:show_main"))
+        self.assertContains(response, f'href="{self.login_url}"')
+        self.assertContains(response, f'href="{self.register_url}"')
+        self.assertNotContains(response, f'href="{self.logout_url}"')
+
+    def test_register_page_uses_builtin_fields_and_csrf(self):
+        response = self.client.get(self.register_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "register.html")
+        self.assertContains(response, 'name="username"')
+        self.assertContains(response, 'name="password1"')
+        self.assertContains(response, 'name="password2"')
+        self.assertContains(response, "csrfmiddlewaretoken")
+
+    def test_valid_registration_hashes_password_and_redirects(self):
+        response = self.client.post(
+            self.register_url,
+            {
+                "username": "new_reader",
+                "password1": self.password,
+                "password2": self.password,
+            },
+            follow=True,
+        )
+        self.assertRedirects(response, self.login_url)
+        new_user = self.user_model.objects.get(username="new_reader")
+        self.assertTrue(new_user.check_password(self.password))
+        self.assertNotEqual(new_user.password, self.password)
+        self.assertContains(response, "Account created successfully")
+
+    def test_invalid_registration_does_not_create_user(self):
+        response = self.client.post(
+            self.register_url,
+            {
+                "username": "new_reader",
+                "password1": self.password,
+                "password2": "DifferentPassword!",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            self.user_model.objects.filter(username="new_reader").exists()
+        )
+        self.assertContains(response, "didn’t match")
+
+    def test_login_rejects_invalid_credentials(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": "wrong-password"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertContains(response, "correct username and password")
+
+    def test_login_creates_session_and_authenticated_navbar(self):
+        response = self.client.post(
+            self.login_url,
+            {"username": self.user.username, "password": self.password},
+            follow=True,
+        )
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertEqual(
+            int(self.client.session["_auth_user_id"]), self.user.pk
+        )
+        self.assertContains(response, self.user.username)
+        self.assertContains(response, f'href="{self.logout_url}"')
+        self.assertNotContains(response, f'href="{self.register_url}"')
+
+    def test_logout_clears_authentication_without_deleting_account(self):
+        self.client.login(username=self.user.username, password=self.password)
+        response = self.client.get(self.logout_url, follow=True)
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertTrue(
+            self.user_model.objects.filter(pk=self.user.pk).exists()
+        )
+        self.assertContains(response, f'href="{self.login_url}"')
+
+    def test_authentication_forms_require_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        for url, data in (
+            (
+                self.register_url,
+                {
+                    "username": "csrf_user",
+                    "password1": self.password,
+                    "password2": self.password,
+                },
+            ),
+            (
+                self.login_url,
+                {"username": self.user.username, "password": self.password},
+            ),
+        ):
+            with self.subTest(url=url):
+                self.assertEqual(csrf_client.post(url, data).status_code, 403)
 
 
 class MainTest(TestCase):

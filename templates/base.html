@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=1.9">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2.0">
     <link rel="apple-touch-icon" sizes="180x180" href="{% static 'img/apple-touch-icon.png' %}">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'img/favicon-32x32.png' %}">
     <link rel="icon" type="image/png" sizes="16x16" href="{% static 'img/favicon-16x16.png' %}">
@@ -26,6 +26,13 @@
                 <a href="{% url 'main:show_certifications' %}">Certifications</a>
                 <a href="{% url 'main:show_main' %}#skills">Skills</a>
                 <a href="{% url 'main:show_main' %}#contact">Contact</a>
+                {% if user.is_authenticated %}
+                    <span class="nav-user" title="Signed-in account">{{ user.username }}</span>
+                    <a class="nav-auth-action" href="{% url 'main:logout' %}">Logout</a>
+                {% else %}
+                    <a class="nav-auth-action" href="{% url 'main:login' %}">Login</a>
+                    <a class="nav-auth-action nav-register-action" href="{% url 'main:register' %}">Register</a>
+                {% endif %}
             </nav>
         </div>
     </header>

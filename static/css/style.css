@@ -1974,6 +1974,85 @@ h3,
     }
 }
 
+.nav-user {
+    max-width: 10rem;
+    overflow: hidden;
+    color: var(--accent-dark);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-auth-action {
+    padding-left: 0.8rem;
+    border-left: 1px solid var(--line);
+}
+
+.nav-register-action {
+    color: var(--accent-dark);
+    font-weight: 700;
+}
+
+.auth-section {
+    min-height: calc(100vh - 142px);
+    padding: 4.5rem 0;
+    background: linear-gradient(135deg, var(--sky-blue), #e4d6e2);
+}
+
+.auth-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr);
+    align-items: start;
+    gap: clamp(2rem, 6vw, 5rem);
+}
+
+.auth-intro h1 {
+    max-width: 10ch;
+    margin: 0.5rem 0 1rem;
+    font-size: clamp(2.75rem, 6vw, 5rem);
+    line-height: 0.95;
+}
+
+.auth-intro > p:last-child {
+    max-width: 38rem;
+}
+
+.auth-card {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: 10px 10px 0 var(--highlight);
+}
+
+.auth-card h2 {
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.auth-form ul {
+    margin: 0.35rem 0 0 1.2rem;
+}
+
+.auth-switch {
+    margin-top: 1rem;
+}
+
+.auth-switch a {
+    color: var(--accent-dark);
+    font-weight: 700;
+}
+
+@media (max-width: 760px) {
+    .auth-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-section {
+        padding: 2.5rem 0 3.5rem;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     html {
         scroll-behavior: auto;

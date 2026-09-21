@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block meta %}
+    <title>Login - {{ name }}</title>
+{% endblock meta %}
+{% block content %}
+    <main>
+        <section class="auth-section">
+            <div class="container auth-layout">
+                <div class="auth-intro">
+                    <p class="section-kicker">Welcome back</p>
+                    <h1>Continue your session</h1>
+                    <p>Log in so Django can identify your account across portfolio pages.</p>
+                </div>
+                <div class="auth-card">
+                    <h2>Login</h2>
+                    <form method="post" action="{% url 'main:login' %}" class="portfolio-form auth-form">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="form-group">
+                                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                {{ field }}
+                                {% for error in field.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                            </div>
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                        <button type="submit" class="portfolio-form-submit">Login</button>
+                    </form>
+                    <p class="auth-switch">New here? <a href="{% url 'main:register' %}">Create an account</a>.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock content %}
