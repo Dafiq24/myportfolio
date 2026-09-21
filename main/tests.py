@@ -455,6 +455,16 @@ class ExperienceWorkflowTest(TestCase):
 class CertificationTest(TestCase):
     def setUp(self):
         Certification.objects.all().delete()
+        user_model = get_user_model()
+        self.owner = user_model.objects.create_superuser(
+            username="portfolio_owner",
+            email="owner@example.com",
+            password="OwnerTutorial4Pass!",
+        )
+        self.regular_user = user_model.objects.create_user(
+            username="regular_reader",
+            password="ReaderTutorial4Pass!",
+        )
         self.certification = Certification.objects.create(
             title="Gemini Certified Student",
             issuer="Google for Education",
@@ -521,10 +531,6 @@ class CertificationTest(TestCase):
             "main:show_certification_detail",
             kwargs={"certification_id": self.certification.id},
         )
-        delete_url = reverse(
-            "main:delete_certification",
-            kwargs={"certification_id": self.certification.id},
-        )
         response = self.client.get(detail_url)
 
         self.assertEqual(response.status_code, 200)
@@ -533,8 +539,7 @@ class CertificationTest(TestCase):
         self.assertContains(response, self.certification.title)
         self.assertContains(response, self.certification.issuer)
         self.assertContains(response, self.certification.description)
-        self.assertContains(response, f'action="{delete_url}"')
-        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        self.assertNotContains(response, "Delete certification")
 
     def test_certifications_page_links_to_detail(self):
         detail_url = reverse(
@@ -578,6 +583,7 @@ class CertificationTest(TestCase):
         self.assertNotIn("id", form.fields)
 
     def test_create_certification_page_contains_form_and_csrf_token(self):
+        self.client.force_login(self.owner)
         response = self.client.get(reverse("main:create_certification"))
 
         self.assertEqual(response.status_code, 200)
@@ -586,6 +592,7 @@ class CertificationTest(TestCase):
         self.assertContains(response, 'name="csrfmiddlewaretoken"')
 
     def test_valid_certification_submission_creates_object(self):
+        self.client.force_login(self.owner)
         response = self.client.post(
             reverse("main:create_certification"),
             {
@@ -607,6 +614,7 @@ class CertificationTest(TestCase):
         )
 
     def test_invalid_certification_submission_shows_errors(self):
+        self.client.force_login(self.owner)
         response = self.client.post(
             reverse("main:create_certification"),
             {
@@ -695,6 +703,7 @@ class CertificationTest(TestCase):
         self.assertContains(response, "Unknown credential")
 
     def test_delete_certification_rejects_get_requests(self):
+        self.client.force_login(self.owner)
         delete_url = reverse(
             "main:delete_certification",
             kwargs={"certification_id": self.certification.id},
@@ -709,6 +718,7 @@ class CertificationTest(TestCase):
 
     def test_delete_certification_requires_csrf_token(self):
         csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.owner)
         delete_url = reverse(
             "main:delete_certification",
             kwargs={"certification_id": self.certification.id},
@@ -722,6 +732,7 @@ class CertificationTest(TestCase):
         )
 
     def test_delete_certification_removes_object(self):
+        self.client.force_login(self.owner)
         delete_url = reverse(
             "main:delete_certification",
             kwargs={"certification_id": self.certification.id},
@@ -735,6 +746,7 @@ class CertificationTest(TestCase):
         )
 
     def test_unknown_certification_delete_returns_404(self):
+        self.client.force_login(self.owner)
         response = self.client.post(
             reverse(
                 "main:delete_certification",
@@ -743,3 +755,53 @@ class CertificationTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
+
+    def test_anonymous_users_are_redirected_before_mutating_certifications(self):
+        create_response = self.client.get(reverse("main:create_certification"))
+        delete_response = self.client.post(
+            reverse("main:delete_certification", args=[self.certification.pk])
+        )
+        self.assertRedirects(
+            create_response,
+            f'{reverse("main:login")}?next={reverse("main:create_certification")}',
+        )
+        self.assertRedirects(
+            delete_response,
+            f'{reverse("main:login")}?next='
+            f'{reverse("main:delete_certification", args=[self.certification.pk])}',
+        )
+        self.assertTrue(Certification.objects.filter(pk=self.certification.pk).exists())
+
+    def test_regular_users_receive_403_for_create_and_delete(self):
+        self.client.force_login(self.regular_user)
+        self.assertEqual(
+            self.client.get(reverse("main:create_certification")).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.post(
+                reverse("main:delete_certification", args=[self.certification.pk])
+            ).status_code,
+            403,
+        )
+        self.assertTrue(Certification.objects.filter(pk=self.certification.pk).exists())
+
+    def test_mutation_controls_follow_superuser_permissions(self):
+        list_url = reverse("main:show_certifications")
+        detail_url = reverse("main:show_certification_detail", args=[self.certification.pk])
+        create_url = reverse("main:create_certification")
+        delete_url = reverse("main:delete_certification", args=[self.certification.pk])
+
+        for user in (None, self.regular_user):
+            with self.subTest(user=user):
+                self.client.logout()
+                if user:
+                    self.client.force_login(user)
+                self.assertNotContains(self.client.get(list_url), f'href="{create_url}"')
+                self.assertNotContains(self.client.get(detail_url), f'action="{delete_url}"')
+
+        self.client.force_login(self.owner)
+        self.assertContains(self.client.get(list_url), f'href="{create_url}"')
+        owner_detail = self.client.get(detail_url)
+        self.assertContains(owner_detail, f'action="{delete_url}"')
+        self.assertContains(owner_detail, 'name="csrfmiddlewaretoken"')

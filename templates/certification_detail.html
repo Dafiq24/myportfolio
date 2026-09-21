@@ -44,12 +44,15 @@
                                 <a class="certificate-primary-action" href="{{ certification.credential_url }}" target="_blank" rel="noopener noreferrer">Open credential</a>
                             {% endif %}
                             <a class="certificate-secondary-action" href="{% url 'main:show_certifications' %}">Explore all certificates</a>
-                            <a class="certificate-delete-action" href="#delete-certification">Delete certification</a>
+                            {% if user.is_superuser %}
+                                <a class="certificate-delete-action" href="#delete-certification">Delete certification</a>
+                            {% endif %}
                         </div>
                     </article>
                 </div>
             </div>
 
+            {% if user.is_superuser %}
             <div class="lightbox delete-confirmation" id="delete-certification" role="dialog" aria-modal="true" aria-labelledby="delete-confirmation-title">
                 <a class="lightbox-backdrop" href="{% url 'main:show_certification_detail' certification.id %}" aria-label="Cancel deletion"></a>
                 <div class="lightbox-content delete-confirmation-content">
@@ -69,6 +72,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </section>
     </main>
 {% endblock content %}

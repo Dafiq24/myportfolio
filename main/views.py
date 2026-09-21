@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.core.exceptions import PermissionDenied
 from django.core import serializers
 from django.db.models import Q
 from django.http import HttpResponse
@@ -174,7 +176,11 @@ def get_certifications_json(request):
     return HttpResponse(certifications_json, content_type="application/json")
 
 
+@login_required(login_url="/login/")
 def create_certification(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = CertificationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -188,8 +194,12 @@ def create_certification(request):
     return render(request, "certification_form.html", context)
 
 
+@login_required(login_url="/login/")
 @require_POST
 def delete_certification(request, certification_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     certification = get_object_or_404(Certification, pk=certification_id)
     certification_title = certification.title
     certification.delete()

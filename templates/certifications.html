@@ -14,10 +14,12 @@
                         A curated collection of achievements and learning experiences
                         across business, data, artificial intelligence, and web development.
                     </p>
-                    <a class="certificate-add-action" href="{% url 'main:create_certification' %}">
-                        <span aria-hidden="true">+</span>
-                        Add certification
-                    </a>
+                    {% if user.is_superuser %}
+                        <a class="certificate-add-action" href="{% url 'main:create_certification' %}">
+                            <span aria-hidden="true">+</span>
+                            Add certification
+                        </a>
+                    {% endif %}
                 </div>
 
                 <form class="certificate-search" method="get" action="{% url 'main:show_certifications' %}" role="search">
