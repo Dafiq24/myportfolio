@@ -26,6 +26,11 @@ Kelas : PBP E
   - [Transparansi Penggunaan AI Tugas 3](#transparansi-penggunaan-ai-tugas-3)
   - [Pertanyaan Reflektif Tugas 3](#pertanyaan-reflektif-tugas-3)
   - [Tugas 3](#tugas-3)
+- [Tugas Individu 4](#tugas-individu-4)
+  - [Dokumentasi Tugas 4](#dokumentasi-tugas-4)
+  - [Catatan Tugas 4](#catatan-tugas-4)
+  - [Transparansi Penggunaan AI Tugas 4](#transparansi-penggunaan-ai-tugas-4)
+  - [Pertanyaan Reflektif Tugas 4](#pertanyaan-reflektif-tugas-4)
 
 ## Tugas Individu 1
 
@@ -463,3 +468,47 @@ Secara teknis, assertion HTML tidak membuktikan seluruh interaksi browser, dan b
 2. JSON lebih praktis untuk pertukaran data aplikasi web karena struktur object, array, string, angka, boolean, dan null dekat dengan representasi data yang digunakan JavaScript. Payload umumnya lebih ringkas daripada XML yang memakai pasangan tag, dan browser dapat memprosesnya melalui `JSON.parse` atau response JSON tanpa parsing elemen XML. Pada proyek saya, kumpulan Experience dapat direpresentasikan sebagai array dengan identitas objek dan field yang jelas, sehingga hasil search/filter mudah diperiksa atau digunakan oleh konsumen API. Ini bukan berarti JSON selalu lebih baik: XML relevan untuk dokumen dengan struktur campuran, namespace, atau integrasi yang memang mensyaratkan XML. JSON juga tetap membutuhkan validasi, penanganan tipe khusus, serta pemilihan field yang aman. Pilihan JSON pada tugas ini sesuai kebutuhan pertukaran data portofolio, bukan anggapan bahwa semua sistem harus meninggalkan XML.
 
 3. Ketika browser membuka `/api/experiences/`, routing proyek meneruskan request ke `main/urls.py`, lalu named route `main:get_experiences_json` menjalankan view `get_experiences_json`. View membaca parameter `q` dan `category`, mengambil queryset Experience melalui ORM, dan menerapkan filter bila diperlukan. Queryset tetap mengikuti ordering model. `serializers.serialize("json", experiences)` mengubah instance Django menjadi teks JSON berisi nama model, UUID pada `pk`, dan nilai field pada `fields`. Teks tersebut dikembalikan melalui `HttpResponse` dengan content type `application/json`. Serialization diperlukan karena queryset dan instance model merupakan objek Python yang tidak dapat langsung dikirim sebagai format pertukaran data; UUID dan timestamp juga perlu direpresentasikan dalam bentuk yang dapat dibaca konsumen JSON. Pada `/experience/`, `show_experience` memanggil fungsi delivery yang sama secara internal, mendekode response, lalu menjalankan `serializers.deserialize`. Atribut `.object` diambil untuk membentuk list context yang dirender template, tanpa menyimpan ulang objek tersebut. Dengan demikian, data yang tampil telah melewati JSON dan deserialization, tetapi browser tidak melakukan request API kedua untuk membentuk timeline. Serialization bukan enkripsi dan bukan kontrol permission, sehingga field yang dikirim dan akses endpoint tetap harus dievaluasi saat aplikasi berkembang.
+
+
+## Tugas Individu 4
+
+### Dokumentasi Tugas 4
+
+#### (13.01 - 14.48 9/22/2026)
+Tugas Individu 4 melanjutkan penerapan authentication, session, cookie, authorization, dan fitur star yang telah dibuat pada Tutorial 04. Tutorial tersebut menggunakan `Certification` sebagai objek penerapan, sedangkan tugas ini menggunakan `Experience` agar pengembangan melanjutkan bagian portofolio dari Tugas 3. Fondasi autentikasi tetap memanfaatkan user, session, dan form bawaan Django. Pengerjaan tugas dibagi menjadi chapter kecil agar perubahan model, interaksi pengguna, pembatasan peran, pengujian, dokumentasi, dan deployment dapat diperiksa secara terpisah.
+
+Chapter pertama menambahkan field `starred_by` pada model `Experience` menggunakan `ManyToManyField` menuju `settings.AUTH_USER_MODEL`. Field memakai `related_name="starred_experiences"` sehingga relasi dapat diakses dari sisi user, sedangkan `blank=True` memungkinkan Experience tetap tersedia tanpa star. Django menyimpan hubungan tersebut pada tabel perantara, bukan menambahkan satu kolom user pada setiap Experience. Constraint relasi Many-to-Many mencegah pasangan user dan Experience yang sama dihitung berulang kali. Perubahan schema direkam pada migration `0006_experience_starred_by.py`; migration menambahkan relasi tanpa menghapus atau menulis ulang data Experience yang sudah tersedia.
+
+Named route `main:toggle_experience_star` ditambahkan pada pola `/experience/<uuid:experience_id>/star/`. View menggunakan `get_object_or_404` agar UUID yang tidak tersedia menghasilkan respons 404, `@login_required` agar pengunjung tanpa sesi diarahkan ke login, dan `@require_POST` agar operasi tidak dapat dijalankan melalui GET. Jika relasi user sudah ada, view menghapusnya; jika belum ada, view menambahkannya. Form pada template mengirim POST bersama `{% csrf_token %}`, sehingga operasi memperoleh perlindungan CSRF dan tidak dilakukan melalui tautan GET.
+
+Setiap card timeline menampilkan komponen star reusable. Pengguna yang sudah login memperoleh tombol **Star** atau **Unstar**, atribut `aria-pressed` yang mencerminkan statusnya, serta jumlah total star. Pengunjung tanpa login tetap dapat melihat jumlah tersebut tetapi memperoleh tautan **Log in to star**, bukan form perubahan data. Styling memakai pola visual tombol Certification dengan ukuran yang disesuaikan untuk card Experience dan state keyboard focus yang terlihat. Versi cache stylesheet dinaikkan agar perubahan termuat pada browser.
+
+Endpoint `/api/experiences/` tetap berfungsi untuk delivery dan deserialization data, tetapi serialization sekarang memakai whitelist field Experience. Relasi `starred_by` tidak dimasukkan ke response JSON, sehingga username, primary key user, email, password, session, dan identitas pemberi star tidak diekspos oleh endpoint portofolio. Timeline masih dapat memperoleh status dan jumlah star dari relasi database berdasarkan UUID setiap objek setelah proses deserialization.
+
+Delapan regression test baru memeriksa redirect anonymous tanpa perubahan data, penolakan GET dengan status 405, penolakan POST tanpa CSRF dengan status 403, toggle dua arah, independensi dan keunikan star antar-user, status serta jumlah pada UI, JSON tanpa identitas pengguna, dan UUID asing dengan respons 404. Sebanyak 29 test khusus workflow Experience dan seluruh 78 test proyek berhasil dijalankan. `python manage.py check`, `python manage.py makemigrations --check`, dan `git diff --check` juga berhasil. Pengujian browser memastikan alur login, Star, Unstar, perubahan jumlah, serta JSON berjalan sesuai harapan. Implementasi kemudian dicatat pada commit `4e77102` dan hash yang sama berhasil diverifikasi pada branch `master` lokal, GitHub, dan PWS.
+
+Pada akhir chapter ini, pembatasan star sudah tersedia tetapi matriks authorization CRUD Experience belum diterapkan. Create, update, dan delete akan dibatasi pada chapter berikutnya menggunakan empat peran: pengunjung, pengguna biasa, Editor, dan superuser. Pemisahan ini disengaja agar keberhasilan fitur star tidak dianggap sebagai bukti bahwa seluruh operasi pengelolaan data sudah aman.
+
+
+### Catatan Tugas 4
+
+Setelah menarik commit terbaru pada environment baru, terapkan migration sebelum menjalankan aplikasi:
+
+```powershell
+python manage.py migrate
+python manage.py check
+python manage.py test
+python manage.py runserver
+```
+
+Fitur star Experience tersedia melalui form POST pada timeline `/experience/`, sedangkan endpoint perubahan datanya berada di `/experience/<uuid>/star/`. Endpoint tersebut bukan halaman yang dibuka langsung menggunakan GET. Pengunjung tanpa login dapat membaca timeline dan jumlah star, tetapi harus login sebelum memberi atau membatalkan star. Endpoint `/api/experiences/` bersifat read-only dan tidak mengirim identitas user yang membentuk relasi star.
+
+
+### Transparansi Penggunaan AI Tugas 4
+
+Codex digunakan secara bertahap untuk membaca ketentuan, memetakan implementasi Tutorial 04 ke Experience, menjelaskan konsep relasi Many-to-Many, membantu perubahan kode, dan menyusun pengujian. Saya tetap menjalankan migration, pemeriksaan Django, seluruh test, Git, deployment, serta pengujian interaksi browser secara langsung. Strategi prompting dan log prompt lengkap akan disusun pada tahap finalisasi berdasarkan catatan setiap chapter agar dapat membedakan arahan awal, hasil AI, koreksi manual, dan bukti verifikasi tanpa mengulang percakapan mentah yang tidak relevan.
+
+
+### Pertanyaan Reflektif Tugas 4
+
+Pertanyaan reflektif resmi belum dicantumkan pada dokumen awal Tugas Individu 4 dan akan ditambahkan setelah tersedia di SCELE. Jawaban tidak dibuat berdasarkan pertanyaan asumsi agar tetap sesuai instruksi dosen.
