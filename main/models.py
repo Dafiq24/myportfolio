@@ -29,6 +29,11 @@ class Experience(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     skills = models.CharField(max_length=255, blank=True)
+    starred_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="starred_experiences",
+        blank=True,
+    )
 
     class Meta:
         ordering = ["display_order", "-started_at"]

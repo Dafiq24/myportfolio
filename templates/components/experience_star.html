@@ -1,0 +1,22 @@
+<div class="experience-star-control">
+    {% if user.is_authenticated %}
+        <form method="post" action="{% url 'main:toggle_experience_star' experience.id %}" class="star-form">
+            {% csrf_token %}
+            <button
+                type="submit"
+                class="experience-star-action{% if user in experience.starred_by.all %} is-starred{% endif %}"
+                aria-pressed="{% if user in experience.starred_by.all %}true{% else %}false{% endif %}"
+            >
+                <span aria-hidden="true">&#9733;</span>
+                {% if user in experience.starred_by.all %}Unstar{% else %}Star{% endif %}
+                <span class="star-count" aria-label="{{ experience.starred_by.count }} stars">{{ experience.starred_by.count }}</span>
+            </button>
+        </form>
+    {% else %}
+        <a class="experience-star-action" href="{% url 'main:login' %}">
+            <span aria-hidden="true">&#9733;</span>
+            Log in to star
+            <span class="star-count" aria-label="{{ experience.starred_by.count }} stars">{{ experience.starred_by.count }}</span>
+        </a>
+    {% endif %}
+</div>

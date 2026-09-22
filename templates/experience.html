@@ -52,6 +52,7 @@
                                         <li>{{ skill }}</li>
                                     {% endfor %}
                                 </ul>
+                                {% include "components/experience_star.html" %}
                                 <div class="experience-item-actions">
                                     <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
                                     <a class="experience-delete-action" href="#delete-experience-{{ experience.id }}">Delete experience</a>

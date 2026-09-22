@@ -100,7 +100,22 @@ def get_experiences_json(request):
         experiences = experiences.filter(category=category)
 
     return HttpResponse(
-        serializers.serialize("json", experiences),
+        serializers.serialize(
+            "json",
+            experiences,
+            fields=(
+                "title",
+                "organization",
+                "period",
+                "display_order",
+                "description",
+                "category",
+                "thumbnail",
+                "started_at",
+                "ended_at",
+                "skills",
+            ),
+        ),
         content_type="application/json",
     )
 
@@ -145,6 +160,17 @@ def delete_experience(request, experience_id):
         request,
         f'Experience "{experience_title}" deleted successfully.',
     )
+    return redirect("main:show_experience")
+
+
+@login_required(login_url="/login/")
+@require_POST
+def toggle_experience_star(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    if experience.starred_by.filter(pk=request.user.pk).exists():
+        experience.starred_by.remove(request.user)
+    else:
+        experience.starred_by.add(request.user)
     return redirect("main:show_experience")
 
 

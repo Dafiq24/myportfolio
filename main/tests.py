@@ -245,6 +245,15 @@ class ExperienceWorkflowTest(TestCase):
             "skills": "Advocacy, Communication, Teamwork",
         }
         self.experience = Experience.objects.create(**self.data)
+        user_model = get_user_model()
+        self.regular_user = user_model.objects.create_user(
+            username="experience_reader",
+            password="ReaderTugas4Pass!",
+        )
+        self.other_user = user_model.objects.create_user(
+            username="second_reader",
+            password="SecondTugas4Pass!",
+        )
         self.list_url = reverse("main:show_experience")
         self.create_url = reverse("main:create_experience")
         self.json_url = reverse("main:get_experiences_json")
@@ -253,6 +262,9 @@ class ExperienceWorkflowTest(TestCase):
         )
         self.delete_url = reverse(
             "main:delete_experience", args=[self.experience.pk]
+        )
+        self.star_url = reverse(
+            "main:toggle_experience_star", args=[self.experience.pk]
         )
 
     def test_form_exposes_all_editable_portfolio_fields(self):
@@ -375,6 +387,78 @@ class ExperienceWorkflowTest(TestCase):
         url = reverse("main:delete_experience", args=[uuid.uuid4()])
         self.assertEqual(self.client.post(url).status_code, 404)
         self.assertEqual(Experience.objects.count(), 1)
+
+    def test_anonymous_star_redirects_to_login_without_changing_data(self):
+        response = self.client.post(self.star_url)
+        self.assertRedirects(
+            response,
+            f"{reverse('main:login')}?next={self.star_url}",
+            fetch_redirect_response=False,
+        )
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_star_rejects_get_and_missing_csrf(self):
+        self.client.force_login(self.regular_user)
+        self.assertEqual(self.client.get(self.star_url).status_code, 405)
+
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.regular_user)
+        self.assertEqual(csrf_client.post(self.star_url).status_code, 403)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_logged_in_user_can_star_and_unstar(self):
+        self.client.force_login(self.regular_user)
+
+        response = self.client.post(self.star_url)
+        self.assertRedirects(response, self.list_url)
+        self.assertTrue(
+            self.experience.starred_by.filter(pk=self.regular_user.pk).exists()
+        )
+
+        self.client.post(self.star_url)
+        self.assertFalse(
+            self.experience.starred_by.filter(pk=self.regular_user.pk).exists()
+        )
+
+    def test_stars_are_unique_and_independent_per_user(self):
+        self.experience.starred_by.add(self.regular_user, self.other_user)
+        self.experience.starred_by.add(self.regular_user)
+        self.assertEqual(self.experience.starred_by.count(), 2)
+
+        self.client.force_login(self.regular_user)
+        self.client.post(self.star_url)
+        self.assertFalse(
+            self.experience.starred_by.filter(pk=self.regular_user.pk).exists()
+        )
+        self.assertTrue(
+            self.experience.starred_by.filter(pk=self.other_user.pk).exists()
+        )
+
+    def test_timeline_shows_star_status_and_total(self):
+        self.experience.starred_by.add(self.regular_user, self.other_user)
+        self.client.force_login(self.regular_user)
+        response = self.client.get(self.list_url)
+
+        self.assertContains(response, f'action="{self.star_url}"')
+        self.assertContains(response, 'aria-pressed="true"')
+        self.assertContains(response, "Unstar")
+        self.assertContains(response, 'aria-label="2 stars"')
+
+    def test_anonymous_timeline_offers_login_without_post_form(self):
+        response = self.client.get(self.list_url)
+        self.assertContains(response, "Log in to star")
+        self.assertNotContains(response, f'action="{self.star_url}"')
+
+    def test_experience_json_does_not_expose_starring_users(self):
+        self.experience.starred_by.add(self.regular_user)
+        fields = self.client.get(self.json_url).json()[0]["fields"]
+        self.assertNotIn("starred_by", fields)
+        self.assertNotContains(self.client.get(self.json_url), self.regular_user.username)
+
+    def test_unknown_star_target_returns_404_for_logged_in_user(self):
+        self.client.force_login(self.regular_user)
+        url = reverse("main:toggle_experience_star", args=[uuid.uuid4()])
+        self.assertEqual(self.client.post(url).status_code, 404)
 
     def test_timeline_links_and_confirmation_identify_target(self):
         response = self.client.get(self.list_url)
