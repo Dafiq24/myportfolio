@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block meta %}
+    <title>Permission denied - {{ name }}</title>
+{% endblock meta %}
+{% block content %}
+    <main>
+        <section class="access-denied-section">
+            <div class="container access-denied-card">
+                <p class="section-kicker">403 &middot; Permission denied</p>
+                <h1>This action is outside your access level.</h1>
+                <p>
+                    You are signed in{% if user.is_authenticated %} as <strong>{{ user.username }}</strong>{% endif %},
+                    but this portfolio action requires a different role. Your account and portfolio data have not been changed.
+                </p>
+                <div class="access-denied-actions">
+                    <a class="certificate-primary-action" href="{% url 'main:show_experience' %}">Back to experience</a>
+                    <a class="certificate-secondary-action" href="{% url 'main:show_main' %}">Return to profile</a>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock content %}

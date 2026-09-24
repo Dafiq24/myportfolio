@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from main.forms import CertificationForm, ExperienceForm
@@ -29,6 +30,18 @@ def can_update_experience(user):
     )
 
 
+def get_safe_next_url(request):
+    """Return a local post-login destination or an empty string."""
+    next_url = request.POST.get("next") or request.GET.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return next_url
+    return ""
+
+
 def register(request):
     form = UserCreationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -44,10 +57,11 @@ def register(request):
 
 
 def login_user(request):
+    next_url = get_safe_next_url(request)
     form = AuthenticationForm(request, data=request.POST or None)
     if request.method == "POST" and form.is_valid():
         login(request, form.get_user())
-        response = redirect("main:show_main")
+        response = redirect(next_url or "main:show_main")
         response.set_cookie(
             "last_login",
             timezone.now().strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -60,7 +74,11 @@ def login_user(request):
     return render(
         request,
         "login.html",
-        {"name": "Sultan Noor Dafiq", "form": form},
+        {
+            "name": "Sultan Noor Dafiq",
+            "form": form,
+            "next_url": next_url,
+        },
     )
 
 
@@ -288,3 +306,13 @@ def show_certification_detail(request, certification_id):
         ),
     }
     return render(request, "certification_detail.html", context)
+
+
+def permission_denied_view(request, exception):
+    """Render a helpful response without exposing permission internals."""
+    return render(
+        request,
+        "403.html",
+        {"name": "Sultan Noor Dafiq"},
+        status=403,
+    )

@@ -92,6 +92,64 @@ class AuthenticationWorkflowTest(TestCase):
         self.assertContains(response, f'href="{self.logout_url}"')
         self.assertNotContains(response, f'href="{self.register_url}"')
 
+    def test_login_continues_to_a_safe_local_destination(self):
+        destination = reverse("main:show_experience")
+        login_page = self.client.get(self.login_url, {"next": destination})
+        self.assertContains(
+            login_page,
+            f'<input type="hidden" name="next" value="{destination}">',
+            html=True,
+        )
+
+        response = self.client.post(
+            self.login_url,
+            {
+                "username": self.user.username,
+                "password": self.password,
+                "next": destination,
+            },
+        )
+        self.assertRedirects(
+            response,
+            destination,
+            fetch_redirect_response=False,
+        )
+
+    def test_login_ignores_unsafe_external_destinations(self):
+        for destination in (
+            "https://malicious.example/collect",
+            "//malicious.example/collect",
+        ):
+            with self.subTest(destination=destination):
+                self.client.logout()
+                response = self.client.post(
+                    self.login_url,
+                    {
+                        "username": self.user.username,
+                        "password": self.password,
+                        "next": destination,
+                    },
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("main:show_main"),
+                    fetch_redirect_response=False,
+                )
+
+    def test_invalid_login_preserves_a_safe_destination(self):
+        destination = reverse("main:show_experience")
+        response = self.client.post(
+            self.login_url,
+            {
+                "username": self.user.username,
+                "password": "wrong-password",
+                "next": destination,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{destination}"')
+        self.assertNotIn("_auth_user_id", self.client.session)
+
     def test_successful_login_sets_hardened_last_login_cookie(self):
         response = self.client.post(
             self.login_url,
@@ -432,6 +490,28 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual(self.client.get(self.update_url).status_code, 403)
         self.assertEqual(self.client.post(self.delete_url).status_code, 403)
         self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_forbidden_response_uses_helpful_custom_page(self):
+        self.client.force_login(self.regular_user)
+        response = self.client.get(self.create_url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTemplateUsed(response, "403.html")
+        self.assertContains(
+            response,
+            "This action is outside your access level.",
+            status_code=403,
+        )
+        self.assertContains(
+            response,
+            self.regular_user.username,
+            status_code=403,
+        )
+        self.assertContains(
+            response,
+            f'href="{self.list_url}"',
+            status_code=403,
+        )
 
     def test_editor_can_update_but_cannot_create_or_delete(self):
         self.client.force_login(self.editor)
