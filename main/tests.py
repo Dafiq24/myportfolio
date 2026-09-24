@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib import admin
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -254,6 +255,17 @@ class ExperienceWorkflowTest(TestCase):
             username="second_reader",
             password="SecondTugas4Pass!",
         )
+        self.editor = user_model.objects.create_user(
+            username="experience_editor",
+            password="EditorTugas4Pass!",
+        )
+        self.editor_group = Group.objects.create(name="Editor")
+        self.editor.groups.add(self.editor_group)
+        self.owner = user_model.objects.create_superuser(
+            username="portfolio_owner_tugas4",
+            email="owner-tugas4@example.com",
+            password="OwnerTugas4Pass!",
+        )
         self.list_url = reverse("main:show_experience")
         self.create_url = reverse("main:create_experience")
         self.json_url = reverse("main:get_experiences_json")
@@ -287,6 +299,7 @@ class ExperienceWorkflowTest(TestCase):
                 self.assertIn(field, form.errors)
 
     def test_create_page_uses_shared_template_and_csrf(self):
+        self.client.force_login(self.owner)
         response = self.client.get(self.create_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience_form.html")
@@ -295,6 +308,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertContains(response, "Add experience")
 
     def test_valid_create_saves_all_fields_and_success_feedback(self):
+        self.client.force_login(self.owner)
         response = self.client.post(
             self.create_url, {**self.data, "title": "Teaching Staff"}, follow=True
         )
@@ -308,6 +322,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertContains(response, "Dismiss notification")
 
     def test_invalid_create_preserves_count_and_input(self):
+        self.client.force_login(self.owner)
         response = self.client.post(self.create_url, {**self.data, "title": ""})
         self.assertEqual(response.status_code, 200)
         self.assertFormError(response.context["form"], "title", "This field is required.")
@@ -315,6 +330,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertContains(response, self.experience.organization)
 
     def test_update_page_prefills_every_field(self):
+        self.client.force_login(self.editor)
         response = self.client.get(self.update_url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience_form.html")
@@ -325,6 +341,7 @@ class ExperienceWorkflowTest(TestCase):
             self.assertEqual(form.initial[field], value)
 
     def test_update_changes_same_object_without_duplicates(self):
+        self.client.force_login(self.editor)
         original_pk = self.experience.pk
         original_started_at = self.experience.started_at
         response = self.client.post(
@@ -342,6 +359,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertContains(response, "Experience updated successfully.")
 
     def test_invalid_update_does_not_modify_database(self):
+        self.client.force_login(self.editor)
         response = self.client.post(self.update_url, {**self.data, "title": ""})
         self.assertEqual(response.status_code, 200)
         self.assertIn("title", response.context["form"].errors)
@@ -350,12 +368,14 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual(Experience.objects.count(), 1)
 
     def test_unknown_update_returns_404_for_get_and_post(self):
+        self.client.force_login(self.editor)
         url = reverse("main:update_experience", args=[uuid.uuid4()])
         self.assertEqual(self.client.get(url).status_code, 404)
         self.assertEqual(self.client.post(url, self.data).status_code, 404)
 
     def test_mutations_require_csrf_tokens(self):
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
         for url in (self.create_url, self.update_url, self.delete_url):
             with self.subTest(url=url):
                 self.assertEqual(client.post(url, self.data).status_code, 403)
@@ -364,6 +384,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual(self.experience.title, self.data["title"])
 
     def test_delete_rejects_non_post_methods(self):
+        self.client.force_login(self.owner)
         for method in ("get", "put", "patch", "delete", "head"):
             with self.subTest(method=method):
                 response = getattr(self.client, method)(self.delete_url)
@@ -373,6 +394,7 @@ class ExperienceWorkflowTest(TestCase):
     def test_delete_with_valid_csrf_removes_only_target(self):
         other = Experience.objects.create(**{**self.data, "title": "Keep this role"})
         client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
         client.get(self.list_url)
         token = client.cookies["csrftoken"].value
         response = client.post(
@@ -384,9 +406,68 @@ class ExperienceWorkflowTest(TestCase):
         self.assertContains(response, "deleted successfully.")
 
     def test_unknown_delete_returns_404(self):
+        self.client.force_login(self.owner)
         url = reverse("main:delete_experience", args=[uuid.uuid4()])
         self.assertEqual(self.client.post(url).status_code, 404)
         self.assertEqual(Experience.objects.count(), 1)
+
+    def test_anonymous_crud_requests_redirect_to_login(self):
+        requests = (
+            ("get", self.create_url, None),
+            ("get", self.update_url, None),
+            ("post", self.delete_url, {}),
+        )
+        for method, url, data in requests:
+            with self.subTest(method=method, url=url):
+                response = getattr(self.client, method)(url, data=data)
+                self.assertRedirects(
+                    response,
+                    f"{reverse('main:login')}?next={url}",
+                    fetch_redirect_response=False,
+                )
+
+    def test_regular_user_receives_403_for_all_crud_operations(self):
+        self.client.force_login(self.regular_user)
+        self.assertEqual(self.client.get(self.create_url).status_code, 403)
+        self.assertEqual(self.client.get(self.update_url).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_editor_can_update_but_cannot_create_or_delete(self):
+        self.client.force_login(self.editor)
+        self.assertEqual(self.client.get(self.update_url).status_code, 200)
+        self.assertEqual(self.client.get(self.create_url).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.pk).exists())
+
+    def test_crud_controls_follow_the_role_matrix(self):
+        cases = (
+            (None, False, False, False),
+            (self.regular_user, False, False, False),
+            (self.editor, False, True, False),
+            (self.owner, True, True, True),
+        )
+        delete_link = f'href="#delete-experience-{self.experience.pk}"'
+        for user, can_create, can_update, can_delete in cases:
+            with self.subTest(user=getattr(user, "username", "anonymous")):
+                self.client.logout()
+                if user is not None:
+                    self.client.force_login(user)
+                response = self.client.get(self.list_url)
+                if can_create:
+                    self.assertContains(response, f'href="{self.create_url}"')
+                else:
+                    self.assertNotContains(response, f'href="{self.create_url}"')
+                if can_update:
+                    self.assertContains(response, f'href="{self.update_url}"')
+                else:
+                    self.assertNotContains(response, f'href="{self.update_url}"')
+                if can_delete:
+                    self.assertContains(response, delete_link)
+                    self.assertContains(response, f'action="{self.delete_url}"')
+                else:
+                    self.assertNotContains(response, delete_link)
+                    self.assertNotContains(response, f'action="{self.delete_url}"')
 
     def test_anonymous_star_redirects_to_login_without_changing_data(self):
         response = self.client.post(self.star_url)
@@ -461,6 +542,7 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual(self.client.post(url).status_code, 404)
 
     def test_timeline_links_and_confirmation_identify_target(self):
+        self.client.force_login(self.owner)
         response = self.client.get(self.list_url)
         self.assertContains(response, f'href="{self.create_url}"')
         self.assertContains(response, f'href="{self.update_url}"')

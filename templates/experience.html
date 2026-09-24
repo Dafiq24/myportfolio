@@ -11,10 +11,12 @@
                     <p class="section-kicker">Experience</p>
                     <h1>Learning through real responsibilities</h1>
                     <p>A collection of roles that shaped how I communicate, collaborate, and turn ideas into meaningful contributions.</p>
-                    <a class="experience-add-action" href="{% url 'main:create_experience' %}">
-                        <span aria-hidden="true">+</span>
-                        Add experience
-                    </a>
+                    {% if user.is_superuser %}
+                        <a class="experience-add-action" href="{% url 'main:create_experience' %}">
+                            <span aria-hidden="true">+</span>
+                            Add experience
+                        </a>
+                    {% endif %}
                 </div>
                 <form class="experience-search" method="get" action="{% url 'main:show_experience' %}" role="search">
                     <div class="experience-search-field">
@@ -53,30 +55,36 @@
                                     {% endfor %}
                                 </ul>
                                 {% include "components/experience_star.html" %}
-                                <div class="experience-item-actions">
-                                    <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
-                                    <a class="experience-delete-action" href="#delete-experience-{{ experience.id }}">Delete experience</a>
-                                </div>
+                                {% if user.is_superuser or is_editor %}
+                                    <div class="experience-item-actions">
+                                        <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
+                                        {% if user.is_superuser %}
+                                            <a class="experience-delete-action" href="#delete-experience-{{ experience.id }}">Delete experience</a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
                             </article>
-                            <div class="lightbox delete-confirmation" id="delete-experience-{{ experience.id }}" role="dialog" aria-modal="true" aria-labelledby="delete-experience-title-{{ experience.id }}">
-                                <a class="lightbox-backdrop" href="#experience-{{ experience.id }}" aria-label="Cancel deletion"></a>
-                                <div class="lightbox-content delete-confirmation-content">
-                                    <a class="lightbox-close" href="#experience-{{ experience.id }}" aria-label="Cancel deletion">&times;</a>
-                                    <p class="section-kicker">Confirm deletion</p>
-                                    <h2 id="delete-experience-title-{{ experience.id }}">Delete this experience?</h2>
-                                    <p>
-                                        “{{ experience.title }}” will be permanently removed from the portfolio timeline.
-                                        This action cannot be undone.
-                                    </p>
-                                    <div class="delete-confirmation-actions">
-                                        <form method="post" action="{% url 'main:delete_experience' experience.id %}">
-                                            {% csrf_token %}
-                                            <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
-                                        </form>
-                                        <a class="certificate-secondary-action" href="#experience-{{ experience.id }}">Keep experience</a>
+                            {% if user.is_superuser %}
+                                <div class="lightbox delete-confirmation" id="delete-experience-{{ experience.id }}" role="dialog" aria-modal="true" aria-labelledby="delete-experience-title-{{ experience.id }}">
+                                    <a class="lightbox-backdrop" href="#experience-{{ experience.id }}" aria-label="Cancel deletion"></a>
+                                    <div class="lightbox-content delete-confirmation-content">
+                                        <a class="lightbox-close" href="#experience-{{ experience.id }}" aria-label="Cancel deletion">&times;</a>
+                                        <p class="section-kicker">Confirm deletion</p>
+                                        <h2 id="delete-experience-title-{{ experience.id }}">Delete this experience?</h2>
+                                        <p>
+                                            “{{ experience.title }}” will be permanently removed from the portfolio timeline.
+                                            This action cannot be undone.
+                                        </p>
+                                        <div class="delete-confirmation-actions">
+                                            <form method="post" action="{% url 'main:delete_experience' experience.id %}">
+                                                {% csrf_token %}
+                                                <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
+                                            </form>
+                                            <a class="certificate-secondary-action" href="#experience-{{ experience.id }}">Keep experience</a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            {% endif %}
                         {% empty %}
                             {% if experience_query or category_query %}
                                 <p class="empty-state">No experiences match these filters. Try another role, organization, or category.</p>

@@ -14,6 +14,21 @@ from main.forms import CertificationForm, ExperienceForm
 from main.models import Certification, Experience
 
 
+def is_experience_editor(user):
+    """Return whether an authenticated user belongs to the Editor group."""
+    return (
+        user.is_authenticated
+        and user.groups.filter(name="Editor").exists()
+    )
+
+
+def can_update_experience(user):
+    """Allow Experience updates to editors and the portfolio owner."""
+    return user.is_authenticated and (
+        user.is_superuser or is_experience_editor(user)
+    )
+
+
 def register(request):
     form = UserCreationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -83,6 +98,7 @@ def show_experience(request):
         "experience_query": request.GET.get("q", "").strip(),
         "category_query": request.GET.get("category", "").strip(),
         "experience_categories": Experience.EXPERIENCE_CHOICES,
+        "is_editor": is_experience_editor(request.user),
     }
     return render(request, "experience.html", context)
 
@@ -120,7 +136,11 @@ def get_experiences_json(request):
     )
 
 
+@login_required(login_url="/login/")
 def create_experience(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     form = ExperienceForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
@@ -134,7 +154,11 @@ def create_experience(request):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 def update_experience(request, experience_id):
+    if not can_update_experience(request.user):
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
 
@@ -151,8 +175,12 @@ def update_experience(request, experience_id):
     return render(request, "experience_form.html", context)
 
 
+@login_required(login_url="/login/")
 @require_POST
 def delete_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+
     experience = get_object_or_404(Experience, pk=experience_id)
     experience_title = experience.title
     experience.delete()
