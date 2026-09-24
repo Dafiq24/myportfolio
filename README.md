@@ -489,6 +489,19 @@ Delapan regression test baru memeriksa redirect anonymous tanpa perubahan data, 
 
 Pada akhir chapter ini, pembatasan star sudah tersedia tetapi matriks authorization CRUD Experience belum diterapkan. Create, update, dan delete akan dibatasi pada chapter berikutnya menggunakan empat peran: pengunjung, pengguna biasa, Editor, dan superuser. Pemisahan ini disengaja agar keberhasilan fitur star tidak dianggap sebagai bukti bahwa seluruh operasi pengelolaan data sudah aman.
 
+#### (06.12 - 07.22 9/24/2026)
+Chapter kedua menerapkan matriks authorization pada seluruh operasi pengelolaan Experience. Pemilik portofolio direpresentasikan oleh akun `is_superuser`, sedangkan peran Editor direpresentasikan oleh keanggotaan pada Django Group bernama persis `Editor`. Helper `is_experience_editor` memusatkan pemeriksaan grup bagi user yang sudah terautentikasi, kemudian helper `can_update_experience` menggabungkan hak Editor dan superuser untuk operasi update. Pemisahan helper mencegah query dan kondisi role ditulis ulang secara tidak konsisten pada beberapa view.
+
+View `create_experience`, `update_experience`, dan `delete_experience` sekarang memakai `@login_required`. Karena itu, pengunjung tanpa login diarahkan ke `/login/` bersama parameter `next`, bukan menerima halaman perubahan data. Setelah user terautentikasi, create dan delete hanya menerima superuser, sedangkan update menerima superuser atau anggota grup Editor. User biasa yang mencoba endpoint perubahan secara langsung memperoleh HTTP 403 Forbidden. Delete tetap dibatasi oleh `@require_POST`, sehingga perlindungan role tidak menghilangkan pembatasan method maupun CSRF yang dibuat pada Tugas 3.
+
+Urutan hak akses yang diterapkan adalah: pengunjung hanya membaca; user biasa membaca dan melakukan Star atau Unstar; Editor memiliki seluruh hak user biasa serta dapat mengubah Experience; superuser dapat membuat, mengubah, dan menghapus Experience sekaligus menggunakan fitur star. Membership Editor tidak memberi hak create atau delete, dan user tidak perlu menjadi Editor untuk memberi star. UUID tetap digunakan untuk memilih objek, tetapi tidak dianggap sebagai mekanisme authorization.
+
+Template timeline memperoleh boolean `is_editor` dari view. Tombol **Add experience** hanya dirender untuk superuser. Tombol **Edit experience** ditampilkan untuk Editor dan superuser, sedangkan tombol **Delete experience**, modal konfirmasi, dan form delete hanya tersedia bagi superuser. User biasa dan anonymous tidak menerima markup kontrol CRUD tersebut. Kondisi template hanya memperbaiki pengalaman pengguna; keamanan tetap ditentukan oleh pemeriksaan pada view karena pengguna dapat mencoba URL tanpa melalui tombol.
+
+Empat regression test matriks akses ditambahkan dan test workflow lama disesuaikan agar menggunakan role yang sah. Test memverifikasi redirect login untuk anonymous, respons 403 bagi user biasa, akses update tetapi bukan create/delete bagi Editor, serta kombinasi tombol yang tepat untuk keempat role. Test create, update, delete, CSRF, 404, 405, JSON, filtering, dan star sebelumnya tetap dipertahankan. Sebanyak 33 test khusus Experience dan seluruh 82 test proyek lulus, sementara `python manage.py check` dan `python manage.py makemigrations --check` tidak menemukan masalah atau perubahan schema baru.
+
+Pengujian browser dilakukan dengan akun untuk setiap role. Pengunjung dan user biasa tidak melihat kontrol CRUD, Editor hanya melihat serta dapat menggunakan Edit, dan superuser memperoleh Add, Edit, serta Delete. Percobaan akses langsung juga menghasilkan redirect atau 403 sesuai role, sementara Star dan Unstar tetap berfungsi bagi seluruh user terautentikasi. Implementasi disimpan pada commit `e0f59b1` dan hash yang sama berhasil diverifikasi pada branch `master` lokal, GitHub, dan PWS. Status sempat menandai `main/urls.py` dan `static/css/style.css` sebagai modified akibat normalisasi line ending, tetapi `git diff`, `--raw`, `--numstat`, serta staged diff semuanya kosong; refresh index mengembalikan working tree menjadi bersih tanpa commit tambahan.
+
 
 ### Catatan Tugas 4
 
@@ -502,6 +515,16 @@ python manage.py runserver
 ```
 
 Fitur star Experience tersedia melalui form POST pada timeline `/experience/`, sedangkan endpoint perubahan datanya berada di `/experience/<uuid>/star/`. Endpoint tersebut bukan halaman yang dibuka langsung menggunakan GET. Pengunjung tanpa login dapat membaca timeline dan jumlah star, tetapi harus login sebelum memberi atau membatalkan star. Endpoint `/api/experiences/` bersifat read-only dan tidak mengirim identitas user yang membentuk relasi star.
+
+Peran Editor ditetapkan melalui Django Admin. Buat grup bernama persis `Editor` pada menu **Groups**, lalu tambahkan akun yang dipilih ke grup tersebut melalui halaman user. Permission bawaan grup dapat dibiarkan kosong karena aplikasi memakai membership grup sebagai penanda role. Jangan memberi status superuser kepada Editor karena status tersebut juga membuka create dan delete. Matriks endpoint Experience saat ini adalah:
+
+| Endpoint | Anonymous | User biasa | Editor | Superuser |
+| --- | --- | --- | --- | --- |
+| Daftar dan JSON | Baca | Baca | Baca | Baca |
+| Star/Unstar | Redirect login | Diizinkan | Diizinkan | Diizinkan |
+| Create | Redirect login | 403 | 403 | Diizinkan |
+| Update | Redirect login | 403 | Diizinkan | Diizinkan |
+| Delete POST | Redirect login | 403 | 403 | Diizinkan |
 
 
 ### Transparansi Penggunaan AI Tugas 4
