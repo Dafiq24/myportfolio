@@ -502,6 +502,18 @@ Empat regression test matriks akses ditambahkan dan test workflow lama disesuaik
 
 Pengujian browser dilakukan dengan akun untuk setiap role. Pengunjung dan user biasa tidak melihat kontrol CRUD, Editor hanya melihat serta dapat menggunakan Edit, dan superuser memperoleh Add, Edit, serta Delete. Percobaan akses langsung juga menghasilkan redirect atau 403 sesuai role, sementara Star dan Unstar tetap berfungsi bagi seluruh user terautentikasi. Implementasi disimpan pada commit `e0f59b1` dan hash yang sama berhasil diverifikasi pada branch `master` lokal, GitHub, dan PWS. Status sempat menandai `main/urls.py` dan `static/css/style.css` sebagai modified akibat normalisasi line ending, tetapi `git diff`, `--raw`, `--numstat`, serta staged diff semuanya kosong; refresh index mengembalikan working tree menjadi bersih tanpa commit tambahan.
 
+#### (07.38 9/24/2026)
+
+Chapter ketiga menambahkan peningkatan keamanan dan pengalaman pengguna di luar checklist minimum. Sebelumnya, decorator `login_required` sudah menyertakan parameter `next` ketika pengunjung mencoba endpoint terbatas, tetapi view login selalu mengarahkan user ke halaman Profile setelah autentikasi berhasil. Akibatnya, tujuan semula hilang. Fungsi `get_safe_next_url` sekarang membaca nilai `next` dari POST atau GET dan memvalidasinya menggunakan `url_has_allowed_host_and_scheme`. Hanya tujuan lokal pada host aplikasi yang diterima, dan request HTTPS mensyaratkan tujuan yang sesuai. Nilai yang kosong atau tidak aman menghasilkan fallback ke halaman Profile.
+
+Template login menyimpan tujuan yang sudah divalidasi melalui hidden input. Jika kredensial salah, tujuan lokal tetap tersedia pada form berikutnya; jika login berhasil, user diteruskan ke halaman yang semula diminta. URL absolut menuju domain eksternal dan URL scheme-relative seperti `//domain-lain` tidak digunakan sebagai redirect. Pembatasan tersebut mencegah halaman login dimanfaatkan sebagai open redirect untuk mengirim pengguna ke situs yang tidak dipercaya setelah autentikasi.
+
+Respons authorization juga memperoleh halaman 403 khusus melalui `handler403` pada URL configuration proyek dan view `permission_denied_view`. Template `403.html` memperluas `base.html`, menjelaskan bahwa akun sudah terautentikasi tetapi action memerlukan role berbeda, menegaskan bahwa data tidak berubah, serta menyediakan jalur kembali ke Experience dan Profile. Halaman tidak mengungkap nama permission, struktur grup, traceback, atau rincian internal pemeriksaan akses. Styling mengikuti visual portofolio, memiliki focus state dari komponen tombol bersama, dan tetap responsif pada layar sempit.
+
+Empat test tambahan memeriksa redirect ke tujuan lokal, penolakan URL eksternal absolut dan scheme-relative, pemeliharaan tujuan ketika login gagal, serta penggunaan template 403 dengan status dan navigasi yang benar. Sebanyak 48 test terfokus pada authentication dan Experience berhasil, kemudian seluruh 86 test proyek lulus tanpa failure. System check dan migration check tetap bersih serta tidak terdapat perubahan schema.
+
+Pengujian manual memastikan superuser yang membuka create sebelum login kembali ke form setelah autentikasi, sedangkan user biasa kembali ke tujuan yang sama dan menerima halaman 403 sesuai matriks role. Percobaan `next=https://example.com` menghasilkan fallback ke Profile, bukan redirect eksternal. Halaman 403 juga diperiksa pada desktop dan layar sempit. Implementasi disimpan pada commit `d1a39c0`, kemudian hash lokal, GitHub, dan PWS diverifikasi identik dengan working tree bersih.
+
 
 ### Catatan Tugas 4
 
@@ -525,6 +537,8 @@ Peran Editor ditetapkan melalui Django Admin. Buat grup bernama persis `Editor` 
 | Create | Redirect login | 403 | 403 | Diizinkan |
 | Update | Redirect login | 403 | Diizinkan | Diizinkan |
 | Delete POST | Redirect login | 403 | 403 | Diizinkan |
+
+Ketika redirect login memuat parameter `next`, aplikasi hanya melanjutkan ke tujuan lokal yang lolos validasi host dan scheme. Nilai eksternal diabaikan dan login kembali ke Profile. HTTP 403 berarti akun sudah dikenali tetapi role-nya tidak mengizinkan action; kondisi ini berbeda dari redirect login untuk pengunjung yang belum terautentikasi. Halaman 403 menyediakan navigasi kembali tanpa mengubah data atau menampilkan rincian permission internal.
 
 
 ### Transparansi Penggunaan AI Tugas 4
