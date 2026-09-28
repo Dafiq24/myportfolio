@@ -30,6 +30,11 @@ Kelas : PBP E
   - [Dokumentasi Tugas 4](#dokumentasi-tugas-4)
   - [Catatan Tugas 4](#catatan-tugas-4)
   - [Transparansi Penggunaan AI Tugas 4](#transparansi-penggunaan-ai-tugas-4)
+- [Tugas Individu 5](#tugas-individu-5)
+  - [Dokumentasi Tugas 5](#dokumentasi-tugas-5)
+  - [Catatan Tugas 5](#catatan-tugas-5)
+  - [Transparansi Penggunaan AI Tugas 5](#transparansi-penggunaan-ai-tugas-5)
+  - [Tugas 5](#tugas-5)
 
 ## Tugas Individu 1
 
@@ -567,3 +572,53 @@ AI juga tidak dapat menyimpulkan keadaan deployment hanya dari test lokal. User,
 Kasus halaman lokal tanpa CSS menunjukkan pentingnya memeriksa asumsi. Tampilan HTML yang masih terlihat setelah server dihentikan awalnya dapat disalahartikan sebagai aplikasi yang berjalan tanpa server. Pemeriksaan listener dan request menunjukkan koneksi sebenarnya ditolak; browser hanya mempertahankan dokumen lama. Bukti jaringan tersebut lebih kuat daripada kesan visual. Perubahan README juga diperiksa sebelum commit: penyesuaian rentang waktu milik pengguna dipertahankan, sedangkan status modified akibat line ending diuji melalui diff kosong dan tidak dipaksakan menjadi commit.
 
 Implementasi saat ini sesuai ruang lingkup tugas, tetapi bukan sistem authorization universal. Nama grup `Editor` bersifat case-sensitive dan dipakai sebagai penanda role; pada aplikasi yang lebih besar, custom permission atau data migration untuk grup dapat mengurangi ketergantungan konfigurasi manual. Relasi star pada template juga belum diaudit untuk optimasi query pada jumlah data besar. Safe redirect, CSRF, UUID, dan custom 403 menutup risiko tertentu, tetapi tidak menggantikan HTTPS, pengelolaan secret, backup, monitoring, atau review keamanan produksi. Karena itu, keluaran AI diperlakukan sebagai usulan yang harus dibuktikan, bukan sebagai jaminan keamanan atau kesiapan produksi.
+
+
+## Tugas Individu 5
+
+### Dokumentasi Tugas 5
+
+#### (18.50 - 20.13 9/28/2026)
+Tugas Individu 5 melanjutkan pola AJAX dari Tutorial 05 pada bagian portofolio yang berbeda. Tutorial menggunakan Certification untuk mempelajari pengambilan data, pencarian, modal create, toast, dan penanganan respons tanpa reload halaman. Tugas ini menerapkan konsep tersebut secara bertahap pada Experience. Pengembangan dibagi menjadi chapter agar delivery JSON, pencarian, mutation asynchronous, keamanan input, pengujian, dokumentasi, dan deployment dapat diperiksa secara terpisah tanpa menganggap keberhasilan satu bagian sebagai bukti bahwa seluruh alur sudah selesai.
+
+Chapter pertama membangun fondasi delivery data Experience yang benar-benar asynchronous. Sebelumnya, `show_experience` memanggil fungsi JSON secara internal pada server, melakukan deserialization, lalu mengirim seluruh objek ke template. Browser tidak melakukan request API kedua sehingga interaksinya belum menggunakan AJAX. Alur tersebut diganti: `show_experience` sekarang hanya merender shell halaman, nilai awal filter, pilihan kategori, dan informasi role, sedangkan browser mengambil data melalui `fetch()` menuju named endpoint `/api/experiences/`.
+
+Endpoint `get_experiences_json` menggunakan `JsonResponse` dan menyusun payload secara manual. Setiap item berisi UUID serta field yang dibutuhkan timeline, termasuk label kategori, daftar skills, status ongoing, jumlah star, dan boolean `is_starred` untuk user yang sedang aktif. Relasi `starred_by` diprefetch untuk mencegah query baru pada setiap pemeriksaan star. Payload tidak mengirim username, email, primary key user, atau daftar identitas pemberi star. Dengan demikian, browser menerima informasi agregat dan status miliknya sendiri tanpa memperoleh data akun pengguna lain.
+
+Template Experience menyediakan state **loading**, **error**, **empty**, dan **ready**. Request yang gagal menampilkan pesan serta tombol **Try again**, hasil kosong membedakan database kosong dari filter tanpa kecocokan, sedangkan hasil berhasil dirender ke timeline yang sudah ada. `AbortController` membatalkan request sebelumnya sebelum request baru dijalankan agar respons lama tidak menimpa hasil yang lebih baru. Search dan category pada chapter ini sudah mengirim parameter ke endpoint tanpa reload halaman; debounce saat pengguna mengetik akan ditambahkan pada chapter berikutnya.
+
+Markup card dibentuk dari data JSON dengan helper yang terpisah untuk isi Experience, star, kontrol update/delete, dan confirmation modal. Seluruh teks dari response melewati `escapeHtml` sebelum dimasukkan melalui `innerHTML`. URL UUID dibuat dari named-route template Django, bukan dirangkai dengan asumsi path yang tersebar. Anonymous memperoleh tautan login, user terautentikasi memperoleh form star dengan CSRF token, Editor dan superuser memperoleh kontrol update, sedangkan delete dan create tetap khusus superuser. Pemeriksaan ini mempertahankan pengalaman pengguna, sementara authorization sebenarnya tetap dijalankan oleh view server dari Tugas 4.
+
+Regression test lama disesuaikan dengan kontrak AJAX baru. Test tidak lagi mengharapkan judul Experience berada langsung pada HTML awal; test memeriksa shell state, endpoint manual JSON, ordering, filter gabungan, nilai `star_count` dan `is_starred`, ketiadaan identitas user, permission flags, serta CRUD, CSRF, 403, 404, dan 405 yang sudah tersedia. Empat puluh test terfokus pada Main dan Experience lulus, kemudian seluruh 94 test proyek lulus. `python manage.py check`, `python manage.py makemigrations --check`, pemeriksaan sintaks JavaScript, dan `git diff --check` juga berhasil. Smoke test HTTP memperoleh status 200 untuk `/experience/` dan `/api/experiences/`; pengujian browser memastikan data, filter, star, dan kontrol role tetap berjalan. Implementasi disimpan pada commit `7133585`, lalu hash yang sama diverifikasi pada branch `master` lokal, GitHub, dan PWS dengan working tree bersih.
+
+Chapter ini sengaja belum menambahkan debounce live search maupun modal create Experience berbasis AJAX. Pemisahan tersebut menjaga scope review: fondasi read path dan state halaman harus stabil sebelum mutation tanpa reload diperkenalkan. Chapter berikutnya akan menambahkan debounce dengan interval yang jelas, perlindungan terhadap race condition yang sudah disiapkan oleh `AbortController`, serta test untuk memastikan request tidak dikirim pada setiap penekanan tombol.
+
+
+### Catatan Tugas 5
+
+Dokumentasi ini akan dilengkapi pada setiap chapter. Setelah menarik perubahan terbaru, jalankan migration dan pemeriksaan proyek sebelum membuka aplikasi:
+
+```powershell
+python manage.py migrate
+python manage.py check
+python manage.py test
+python manage.py runserver
+```
+
+Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Fitur create asynchronous, debounce, toast Experience, dan audit akhir belum dinyatakan selesai pada chapter pertama.
+
+
+### Transparansi Penggunaan AI Tugas 5
+
+Log prompting, kontribusi AI, keputusan manual, koreksi, dan keterbatasan environment akan disusun setelah seluruh chapter Tugas 5 selesai. Selama pengerjaan, setiap prompt dan hasil verifikasi dicatat berdasarkan tahap agar bagian final dapat membedakan bantuan AI, pengujian otomatis, pemeriksaan browser, serta keputusan yang dilakukan secara manual.
+
+
+### Tugas 5
+
+> Jawaban reflektif akan dilengkapi setelah seluruh chapter Tugas 5 selesai agar pembahasannya merujuk pada implementasi final.
+
+1. Jelaskan apa itu debouncing dan mengapa teknik ini penting diterapkan pada fitur pencarian yang menggunakan AJAX!
+
+2. Jelaskan fungsi dari penggunaan `await` ketika kita menggunakan `fetch()`! Apa yang akan terjadi jika kita tidak menggunakan `await`?
+
+3. Jelaskan apa itu serangan XSS (Cross-Site Scripting) dan mengapa data yang ditampilkan melalui AJAX/JavaScript lebih rentan terhadap serangan ini dibandingkan data yang ditampilkan langsung melalui template Django!
