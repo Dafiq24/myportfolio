@@ -700,6 +700,22 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual([item["pk"] for item in payload], [str(self.experience.pk)])
         self.assertContains(response, "Clear filters")
 
+    def test_timeline_search_uses_debounce_and_immediate_category_filter(self):
+        response = self.client.get(self.list_url)
+
+        self.assertContains(response, "EXPERIENCE_SEARCH_DEBOUNCE_MS = 350")
+        self.assertContains(
+            response,
+            'searchInput.addEventListener("input", scheduleExperienceFilters)',
+        )
+        self.assertContains(response, "window.clearTimeout(experiencesSearchTimeout)")
+        self.assertContains(response, "window.setTimeout(() =>")
+        self.assertContains(
+            response,
+            'categoryInput.addEventListener("change", () =>',
+        )
+        self.assertContains(response, "experiencesAbortController.abort()")
+
     def test_filtered_empty_state_differs_from_empty_database(self):
         response = self.client.get(self.list_url, {"q": "Missing"})
         self.assertContains(response, "No experiences match these filters.")

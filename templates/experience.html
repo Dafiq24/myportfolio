@@ -109,6 +109,7 @@
         const STAR_EXPERIENCE_URL_TEMPLATE = "{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}";
         const LOGIN_URL = "{% url 'main:login' %}";
         const CSRF_TOKEN = "{{ csrf_token }}";
+        const EXPERIENCE_SEARCH_DEBOUNCE_MS = 350;
         const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
         const CAN_UPDATE_EXPERIENCE = "{% if user.is_superuser or is_editor %}true{% else %}false{% endif %}" === "true";
         const CAN_DELETE_EXPERIENCE = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
@@ -126,6 +127,7 @@
         const retryButton = document.getElementById("experience-retry");
 
         let experiencesAbortController;
+        let experiencesSearchTimeout;
 
         function escapeHtml(value) {
             return String(value ?? "")
@@ -321,11 +323,33 @@
             fetchExperiences(searchInput.value.trim(), categoryInput.value);
         }
 
+        function clearExperienceSearchTimeout() {
+            if (!experiencesSearchTimeout) return;
+            window.clearTimeout(experiencesSearchTimeout);
+            experiencesSearchTimeout = undefined;
+        }
+
+        function scheduleExperienceFilters() {
+            clearExperienceSearchTimeout();
+            if (experiencesAbortController) experiencesAbortController.abort();
+            experiencesSearchTimeout = window.setTimeout(() => {
+                experiencesSearchTimeout = undefined;
+                applyExperienceFilters();
+            }, EXPERIENCE_SEARCH_DEBOUNCE_MS);
+        }
+
         searchForm.addEventListener("submit", (event) => {
             event.preventDefault();
+            clearExperienceSearchTimeout();
+            applyExperienceFilters();
+        });
+        searchInput.addEventListener("input", scheduleExperienceFilters);
+        categoryInput.addEventListener("change", () => {
+            clearExperienceSearchTimeout();
             applyExperienceFilters();
         });
         clearFiltersButton.addEventListener("click", () => {
+            clearExperienceSearchTimeout();
             searchInput.value = "";
             categoryInput.value = "";
             searchInput.focus();
