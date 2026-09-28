@@ -593,6 +593,17 @@ Regression test lama disesuaikan dengan kontrak AJAX baru. Test tidak lagi mengh
 
 Chapter ini sengaja belum menambahkan debounce live search maupun modal create Experience berbasis AJAX. Pemisahan tersebut menjaga scope review: fondasi read path dan state halaman harus stabil sebelum mutation tanpa reload diperkenalkan. Chapter berikutnya akan menambahkan debounce dengan interval yang jelas, perlindungan terhadap race condition yang sudah disiapkan oleh `AbortController`, serta test untuk memastikan request tidak dikirim pada setiap penekanan tombol.
 
+#### (21.45 - 00.06 9/29/2026)
+Chapter kedua mengubah filter teks menjadi live search dengan debounce selama 350 milidetik. Event `input` tidak langsung memanggil endpoint; setiap ketikan membatalkan timer sebelumnya dan menjadwalkan pemanggilan baru melalui `window.setTimeout`. Request baru hanya dikirim setelah tidak ada input tambahan selama interval tersebut. Nilai jeda disimpan pada konstanta `EXPERIENCE_SEARCH_DEBOUNCE_MS` agar tujuan dan durasinya terlihat jelas serta tidak tersebar sebagai angka tanpa konteks.
+
+Debounce dan `AbortController` menangani dua masalah berbeda. Debounce mengurangi request sebelum dikirim, sedangkan abort membatalkan request lama yang sudah telanjur berjalan. Ketika pengguna kembali mengetik, timer tertunda dibersihkan dan request aktif dibatalkan. Kombinasi ini mengurangi beban endpoint sekaligus mencegah respons pencarian lama menimpa hasil query terbaru. Pembatalan dengan nama error `AbortError` tetap tidak ditampilkan sebagai kegagalan kepada pengguna karena kondisi tersebut merupakan bagian normal dari pergantian pencarian.
+
+Empat jalur interaksi dibedakan agar antarmuka tetap mudah diprediksi. Pengetikan menunggu debounce; perubahan category menjalankan filter segera; submit melalui tombol **Search** atau Enter membatalkan timer lalu menjalankan request tanpa menunggu; sedangkan **Clear filters** membatalkan timer, mengosongkan kedua input, dan memuat seluruh data. Tombol retry tetap menggunakan nilai filter yang sedang terlihat. URL halaman diperbarui menggunakan `history.replaceState`, sehingga query aktif dapat dibaca dari address bar tanpa melakukan reload dokumen.
+
+Regression test baru memeriksa durasi debounce, event `input`, penggunaan `setTimeout` dan `clearTimeout`, perubahan category, serta pembatalan request aktif. Tiga test terfokus untuk wiring debounce dan filter JSON lulus, kemudian seluruh 95 test proyek berhasil dijalankan. Pemeriksaan sintaks JavaScript, `python manage.py check`, `python manage.py makemigrations --check`, dan `git diff --check` juga bersih. Pengujian browser melalui panel Network memastikan pengetikan cepat hanya menghasilkan request setelah jeda, category dan submit merespons langsung, clear mengembalikan daftar penuh, dan halaman tidak reload. Implementasi disimpan pada commit `2ef9fb8`.
+
+Chapter ini belum mengubah operasi create menjadi AJAX. Langkah berikutnya akan menyediakan modal Experience yang memakai `ModelForm`, endpoint POST dengan respons JSON dan status HTTP yang tepat, CSRF token, error per field, serta pembaruan timeline tanpa reload. Pemisahan ini membuat perilaku read/search dapat diaudit terpisah dari mutation dan validasi input.
+
 
 ### Catatan Tugas 5
 
@@ -605,7 +616,7 @@ python manage.py test
 python manage.py runserver
 ```
 
-Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Fitur create asynchronous, debounce, toast Experience, dan audit akhir belum dinyatakan selesai pada chapter pertama.
+Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Fitur create asynchronous, toast Experience, dan audit akhir belum dinyatakan selesai setelah chapter kedua.
 
 
 ### Transparansi Penggunaan AI Tugas 5
