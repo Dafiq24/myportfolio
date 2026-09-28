@@ -18,10 +18,17 @@
                         </a>
                     {% endif %}
                 </div>
-                <form class="experience-search" method="get" action="{% url 'main:show_experience' %}" role="search">
+
+                <form id="experience-search-form" class="experience-search" role="search">
                     <div class="experience-search-field">
                         <label for="experience-query">Search by role or organization</label>
-                        <input id="experience-query" type="search" name="q" value="{{ experience_query }}" placeholder="e.g. Teaching or BEM">
+                        <input
+                            id="experience-query"
+                            type="search"
+                            name="q"
+                            value="{{ experience_query }}"
+                            placeholder="e.g. Teaching or BEM"
+                        >
                     </div>
                     <div class="experience-search-field">
                         <label for="experience-category">Category</label>
@@ -33,66 +40,31 @@
                         </select>
                     </div>
                     <button type="submit">Search</button>
-                    {% if experience_query or category_query %}
-                        <a href="{% url 'main:show_experience' %}">Clear filters</a>
-                    {% endif %}
+                    <button
+                        id="experience-clear-filters"
+                        class="{% if not experience_query and not category_query %}hide{% endif %}"
+                        type="button"
+                    >Clear filters</button>
                 </form>
-                {% if experience_query or category_query %}
-                    <p class="experience-results" role="status">{{ experience_list|length }} experience{{ experience_list|length|pluralize }} found{% if experience_query %} for “{{ experience_query }}”{% endif %}.</p>
-                {% endif %}
+
+                <p id="experience-results" class="experience-results" role="status" aria-live="polite"></p>
                 <div class="experience-layout">
-                    <div class="experience-timeline">
-                        {% for experience in experience_list %}
-                            <article class="experience-item" id="experience-{{ experience.id }}">
-                                <div class="timeline-marker" aria-hidden="true"></div>
-                                <p class="experience-period">{{ experience.period }}</p>
-                                <h3>{{ experience.title }}</h3>
-                                <p class="experience-organization">{{ experience.organization }}</p>
-                                <p class="experience-description">{{ experience.description }}</p>
-                                <ul class="experience-tags" aria-label="Related skills">
-                                    {% for skill in experience.skill_list %}
-                                        <li>{{ skill }}</li>
-                                    {% endfor %}
-                                </ul>
-                                {% include "components/experience_star.html" %}
-                                {% if user.is_superuser or is_editor %}
-                                    <div class="experience-item-actions">
-                                        <a class="experience-edit-action" href="{% url 'main:update_experience' experience.id %}">Edit experience</a>
-                                        {% if user.is_superuser %}
-                                            <a class="experience-delete-action" href="#delete-experience-{{ experience.id }}">Delete experience</a>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </article>
-                            {% if user.is_superuser %}
-                                <div class="lightbox delete-confirmation" id="delete-experience-{{ experience.id }}" role="dialog" aria-modal="true" aria-labelledby="delete-experience-title-{{ experience.id }}">
-                                    <a class="lightbox-backdrop" href="#experience-{{ experience.id }}" aria-label="Cancel deletion"></a>
-                                    <div class="lightbox-content delete-confirmation-content">
-                                        <a class="lightbox-close" href="#experience-{{ experience.id }}" aria-label="Cancel deletion">&times;</a>
-                                        <p class="section-kicker">Confirm deletion</p>
-                                        <h2 id="delete-experience-title-{{ experience.id }}">Delete this experience?</h2>
-                                        <p>
-                                            “{{ experience.title }}” will be permanently removed from the portfolio timeline.
-                                            This action cannot be undone.
-                                        </p>
-                                        <div class="delete-confirmation-actions">
-                                            <form method="post" action="{% url 'main:delete_experience' experience.id %}">
-                                                {% csrf_token %}
-                                                <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
-                                            </form>
-                                            <a class="certificate-secondary-action" href="#experience-{{ experience.id }}">Keep experience</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        {% empty %}
-                            {% if experience_query or category_query %}
-                                <p class="empty-state">No experiences match these filters. Try another role, organization, or category.</p>
-                            {% else %}
-                                <p class="empty-state">No experiences have been added yet.</p>
-                            {% endif %}
-                        {% endfor %}
+                    <div class="experience-list-panel">
+                        <div id="experience-loading" class="experience-state" role="status">
+                            <span class="experience-loading-indicator" aria-hidden="true"></span>
+                            <p>Loading experiences...</p>
+                        </div>
+                        <div id="experience-error" class="experience-state hide" role="alert">
+                            <p>Unable to load experiences. Please try again.</p>
+                            <button id="experience-retry" type="button">Try again</button>
+                        </div>
+                        <div id="experience-empty" class="experience-state hide">
+                            <p>No experiences have been added yet.</p>
+                        </div>
+                        <div id="experience-timeline" class="experience-timeline hide"></div>
+                        <div id="experience-delete-modals"></div>
                     </div>
+
                     <aside class="experience-gallery" aria-labelledby="gallery-title">
                         <div class="gallery-intro">
                             <p class="section-kicker">Documentation</p>
@@ -111,6 +83,7 @@
                     </aside>
                 </div>
             </div>
+
             <div class="lightbox" id="experience-photo-1" role="dialog" aria-modal="true" aria-label="BETIS Fasilkom UI documentation">
                 <a class="lightbox-backdrop" href="#experience" aria-label="Close image preview"></a><figure class="lightbox-content"><a class="lightbox-close" href="#experience" aria-label="Close image preview">&times;</a><div class="lightbox-placeholder">Documentation coming soon</div><figcaption>Teaching Staff &middot; BETIS Fasilkom UI &middot; 2026</figcaption></figure>
             </div>
@@ -128,4 +101,238 @@
             </div>
         </section>
     </main>
+
+    <script>
+        const EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+        const EDIT_EXPERIENCE_URL_TEMPLATE = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
+        const DELETE_EXPERIENCE_URL_TEMPLATE = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
+        const STAR_EXPERIENCE_URL_TEMPLATE = "{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}";
+        const LOGIN_URL = "{% url 'main:login' %}";
+        const CSRF_TOKEN = "{{ csrf_token }}";
+        const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+        const CAN_UPDATE_EXPERIENCE = "{% if user.is_superuser or is_editor %}true{% else %}false{% endif %}" === "true";
+        const CAN_DELETE_EXPERIENCE = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+
+        const loadingState = document.getElementById("experience-loading");
+        const errorState = document.getElementById("experience-error");
+        const emptyState = document.getElementById("experience-empty");
+        const timeline = document.getElementById("experience-timeline");
+        const deleteModals = document.getElementById("experience-delete-modals");
+        const resultsSummary = document.getElementById("experience-results");
+        const searchForm = document.getElementById("experience-search-form");
+        const searchInput = document.getElementById("experience-query");
+        const categoryInput = document.getElementById("experience-category");
+        const clearFiltersButton = document.getElementById("experience-clear-filters");
+        const retryButton = document.getElementById("experience-retry");
+
+        let experiencesAbortController;
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function experienceUrl(template, experienceId) {
+            return template.replace(
+                "00000000-0000-0000-0000-000000000000",
+                experienceId,
+            );
+        }
+
+        function displayExperienceState(state) {
+            loadingState.classList.toggle("hide", state !== "loading");
+            errorState.classList.toggle("hide", state !== "error");
+            emptyState.classList.toggle("hide", state !== "empty");
+            timeline.classList.toggle("hide", state !== "ready");
+        }
+
+        function buildStarMarkup(item) {
+            const experience = item.fields;
+            const starUrl = experienceUrl(STAR_EXPERIENCE_URL_TEMPLATE, item.pk);
+
+            if (!IS_AUTHENTICATED) {
+                const nextUrl = encodeURIComponent(starUrl);
+                return `
+                    <a class="experience-star-action" href="${LOGIN_URL}?next=${nextUrl}">
+                        <span aria-hidden="true">★</span>
+                        Log in to star
+                        <span class="star-count" aria-label="${escapeHtml(experience.star_count)} stars">${escapeHtml(experience.star_count)}</span>
+                    </a>
+                `;
+            }
+
+            return `
+                <form class="star-form experience-star-control" method="post" action="${escapeHtml(starUrl)}">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(CSRF_TOKEN)}">
+                    <button
+                        class="experience-star-action${experience.is_starred ? " is-starred" : ""}"
+                        type="submit"
+                        aria-pressed="${experience.is_starred ? "true" : "false"}"
+                    >
+                        <span aria-hidden="true">★</span>
+                        ${experience.is_starred ? "Unstar" : "Star"}
+                        <span class="star-count" aria-label="${escapeHtml(experience.star_count)} stars">${escapeHtml(experience.star_count)}</span>
+                    </button>
+                </form>
+            `;
+        }
+
+        function buildActionsMarkup(item) {
+            if (!CAN_UPDATE_EXPERIENCE) return "";
+
+            const editUrl = experienceUrl(EDIT_EXPERIENCE_URL_TEMPLATE, item.pk);
+            const deleteAction = CAN_DELETE_EXPERIENCE
+                ? `<a class="experience-delete-action" href="#delete-experience-${escapeHtml(item.pk)}">Delete experience</a>`
+                : "";
+
+            return `
+                <div class="experience-item-actions">
+                    <a class="experience-edit-action" href="${escapeHtml(editUrl)}">Edit experience</a>
+                    ${deleteAction}
+                </div>
+            `;
+        }
+
+        function buildExperienceMarkup(item) {
+            const experience = item.fields;
+            const skills = experience.skill_list
+                .map((skill) => `<li>${escapeHtml(skill)}</li>`)
+                .join("");
+
+            return `
+                <article class="experience-item" id="experience-${escapeHtml(item.pk)}">
+                    <div class="timeline-marker" aria-hidden="true"></div>
+                    <p class="experience-period">${escapeHtml(experience.period)}</p>
+                    <h3>${escapeHtml(experience.title)}</h3>
+                    <p class="experience-organization">${escapeHtml(experience.organization)}</p>
+                    <p class="experience-description">${escapeHtml(experience.description)}</p>
+                    <ul class="experience-tags" aria-label="Related skills">${skills}</ul>
+                    ${buildStarMarkup(item)}
+                    ${buildActionsMarkup(item)}
+                </article>
+            `;
+        }
+
+        function buildDeleteModalMarkup(item) {
+            if (!CAN_DELETE_EXPERIENCE) return "";
+
+            const experience = item.fields;
+            const deleteUrl = experienceUrl(DELETE_EXPERIENCE_URL_TEMPLATE, item.pk);
+            return `
+                <div
+                    class="lightbox delete-confirmation"
+                    id="delete-experience-${escapeHtml(item.pk)}"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="delete-experience-title-${escapeHtml(item.pk)}"
+                >
+                    <a class="lightbox-backdrop" href="#experience-${escapeHtml(item.pk)}" aria-label="Cancel deletion"></a>
+                    <div class="lightbox-content delete-confirmation-content">
+                        <a class="lightbox-close" href="#experience-${escapeHtml(item.pk)}" aria-label="Cancel deletion">&times;</a>
+                        <p class="section-kicker">Confirm deletion</p>
+                        <h2 id="delete-experience-title-${escapeHtml(item.pk)}">Delete this experience?</h2>
+                        <p>“${escapeHtml(experience.title)}” will be permanently removed from the portfolio timeline. This action cannot be undone.</p>
+                        <div class="delete-confirmation-actions">
+                            <form method="post" action="${escapeHtml(deleteUrl)}">
+                                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(CSRF_TOKEN)}">
+                                <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
+                            </form>
+                            <a class="certificate-secondary-action" href="#experience-${escapeHtml(item.pk)}">Keep experience</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderExperiences(experiences) {
+            timeline.innerHTML = experiences.map(buildExperienceMarkup).join("");
+            deleteModals.innerHTML = experiences.map(buildDeleteModalMarkup).join("");
+        }
+
+        function buildExperienceEndpoint(query, category) {
+            const params = new URLSearchParams();
+            if (query) params.set("q", query);
+            if (category) params.set("category", category);
+            const queryString = params.toString();
+            return queryString ? `${EXPERIENCES_ENDPOINT}?${queryString}` : EXPERIENCES_ENDPOINT;
+        }
+
+        function updateExperiencePageUrl(query, category) {
+            const params = new URLSearchParams();
+            if (query) params.set("q", query);
+            if (category) params.set("category", category);
+            const queryString = params.toString();
+            window.history.replaceState(
+                {},
+                "",
+                queryString ? `?${queryString}` : window.location.pathname,
+            );
+        }
+
+        async function fetchExperiences(query = "", category = "") {
+            if (experiencesAbortController) experiencesAbortController.abort();
+            experiencesAbortController = new AbortController();
+            displayExperienceState("loading");
+            resultsSummary.textContent = "";
+
+            try {
+                const response = await fetch(buildExperienceEndpoint(query, category), {
+                    headers: { Accept: "application/json" },
+                    signal: experiencesAbortController.signal,
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const experiences = await response.json();
+                const hasFilters = Boolean(query || category);
+                clearFiltersButton.classList.toggle("hide", !hasFilters);
+                updateExperiencePageUrl(query, category);
+
+                if (experiences.length === 0) {
+                    emptyState.querySelector("p").textContent = hasFilters
+                        ? "No experiences match these filters. Try another role, organization, or category."
+                        : "No experiences have been added yet.";
+                    resultsSummary.textContent = hasFilters
+                        ? `0 experiences found${query ? ` for “${query}”` : ""}.`
+                        : "0 experiences loaded.";
+                    timeline.innerHTML = "";
+                    deleteModals.innerHTML = "";
+                    displayExperienceState("empty");
+                    return;
+                }
+
+                renderExperiences(experiences);
+                resultsSummary.textContent = hasFilters
+                    ? `${experiences.length} experience${experiences.length === 1 ? "" : "s"} found${query ? ` for “${query}”` : ""}.`
+                    : `${experiences.length} experience${experiences.length === 1 ? "" : "s"} loaded.`;
+                displayExperienceState("ready");
+            } catch (error) {
+                if (error.name === "AbortError") return;
+                console.error("Error loading experiences:", error);
+                resultsSummary.textContent = "Experience data could not be loaded.";
+                displayExperienceState("error");
+            }
+        }
+
+        function applyExperienceFilters() {
+            fetchExperiences(searchInput.value.trim(), categoryInput.value);
+        }
+
+        searchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            applyExperienceFilters();
+        });
+        clearFiltersButton.addEventListener("click", () => {
+            searchInput.value = "";
+            categoryInput.value = "";
+            searchInput.focus();
+            fetchExperiences();
+        });
+        retryButton.addEventListener("click", applyExperienceFilters);
+
+        fetchExperiences(searchInput.value.trim(), categoryInput.value);
+    </script>
 {% endblock content %}

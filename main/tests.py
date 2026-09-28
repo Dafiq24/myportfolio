@@ -260,11 +260,12 @@ class MainTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "experience.html")
-        self.assertContains(response, self.experience.title)
-        self.assertContains(response, self.experience.description)
-        self.assertContains(response, self.experience.organization)
-        self.assertContains(response, self.experience.period)
-        self.assertContains(response, "Recruitment")
+        self.assertNotContains(response, self.experience.title)
+        self.assertContains(response, 'id="experience-loading"')
+        self.assertContains(response, 'id="experience-error"')
+        self.assertContains(response, 'id="experience-empty"')
+        self.assertContains(response, 'id="experience-timeline"')
+        self.assertContains(response, reverse("main:get_experiences_json"))
         self.assertContains(
             response,
             f'href="{reverse("main:show_main")}"',
@@ -283,10 +284,12 @@ class MainTest(TestCase):
         self.experience.ended_at = timezone.now()
         self.experience.save()
 
-        response = self.client.get(reverse("main:show_experience"))
+        response = self.client.get(reverse("main:get_experiences_json"))
 
         self.assertFalse(self.experience.is_ongoing)
-        self.assertContains(response, self.experience.title)
+        fields = response.json()[0]["fields"]
+        self.assertFalse(fields["is_ongoing"])
+        self.assertIsNotNone(fields["ended_at"])
 
 
 class ExperienceWorkflowTest(TestCase):
@@ -527,7 +530,6 @@ class ExperienceWorkflowTest(TestCase):
             (self.editor, False, True, False),
             (self.owner, True, True, True),
         )
-        delete_link = f'href="#delete-experience-{self.experience.pk}"'
         for user, can_create, can_update, can_delete in cases:
             with self.subTest(user=getattr(user, "username", "anonymous")):
                 self.client.logout()
@@ -538,16 +540,14 @@ class ExperienceWorkflowTest(TestCase):
                     self.assertContains(response, f'href="{self.create_url}"')
                 else:
                     self.assertNotContains(response, f'href="{self.create_url}"')
-                if can_update:
-                    self.assertContains(response, f'href="{self.update_url}"')
-                else:
-                    self.assertNotContains(response, f'href="{self.update_url}"')
-                if can_delete:
-                    self.assertContains(response, delete_link)
-                    self.assertContains(response, f'action="{self.delete_url}"')
-                else:
-                    self.assertNotContains(response, delete_link)
-                    self.assertNotContains(response, f'action="{self.delete_url}"')
+                self.assertContains(
+                    response,
+                    f'const CAN_UPDATE_EXPERIENCE = "{str(can_update).lower()}"',
+                )
+                self.assertContains(
+                    response,
+                    f'const CAN_DELETE_EXPERIENCE = "{str(can_delete).lower()}"',
+                )
 
     def test_anonymous_star_redirects_to_login_without_changing_data(self):
         response = self.client.post(self.star_url)
@@ -598,23 +598,29 @@ class ExperienceWorkflowTest(TestCase):
     def test_timeline_shows_star_status_and_total(self):
         self.experience.starred_by.add(self.regular_user, self.other_user)
         self.client.force_login(self.regular_user)
-        response = self.client.get(self.list_url)
+        response = self.client.get(self.json_url)
+        fields = response.json()[0]["fields"]
 
-        self.assertContains(response, f'action="{self.star_url}"')
-        self.assertContains(response, 'aria-pressed="true"')
-        self.assertContains(response, "Unstar")
-        self.assertContains(response, 'aria-label="2 stars"')
+        self.assertEqual(fields["star_count"], 2)
+        self.assertTrue(fields["is_starred"])
 
     def test_anonymous_timeline_offers_login_without_post_form(self):
         response = self.client.get(self.list_url)
         self.assertContains(response, "Log in to star")
-        self.assertNotContains(response, f'action="{self.star_url}"')
+        self.assertContains(response, 'const IS_AUTHENTICATED = "false"')
 
     def test_experience_json_does_not_expose_starring_users(self):
         self.experience.starred_by.add(self.regular_user)
-        fields = self.client.get(self.json_url).json()[0]["fields"]
+        anonymous_response = self.client.get(self.json_url)
+        fields = anonymous_response.json()[0]["fields"]
         self.assertNotIn("starred_by", fields)
-        self.assertNotContains(self.client.get(self.json_url), self.regular_user.username)
+        self.assertEqual(fields["star_count"], 1)
+        self.assertFalse(fields["is_starred"])
+        self.assertNotContains(anonymous_response, self.regular_user.username)
+
+        self.client.force_login(self.regular_user)
+        fields = self.client.get(self.json_url).json()[0]["fields"]
+        self.assertTrue(fields["is_starred"])
 
     def test_unknown_star_target_returns_404_for_logged_in_user(self):
         self.client.force_login(self.regular_user)
@@ -625,13 +631,14 @@ class ExperienceWorkflowTest(TestCase):
         self.client.force_login(self.owner)
         response = self.client.get(self.list_url)
         self.assertContains(response, f'href="{self.create_url}"')
-        self.assertContains(response, f'href="{self.update_url}"')
-        self.assertContains(response, f'action="{self.delete_url}"')
-        self.assertContains(response, f'id="delete-experience-{self.experience.pk}"')
+        self.assertContains(response, "EDIT_EXPERIENCE_URL_TEMPLATE")
+        self.assertContains(response, "DELETE_EXPERIENCE_URL_TEMPLATE")
+        self.assertContains(response, 'const CAN_UPDATE_EXPERIENCE = "true"')
+        self.assertContains(response, 'const CAN_DELETE_EXPERIENCE = "true"')
         self.assertContains(response, "Keep experience")
         self.assertContains(response, "csrfmiddlewaretoken")
 
-    def test_json_returns_identity_fields_and_model_ordering(self):
+    def test_json_returns_manual_fields_and_model_ordering(self):
         earlier = Experience.objects.create(
             **{**self.data, "title": "Earlier Role", "display_order": 1}
         )
@@ -641,9 +648,14 @@ class ExperienceWorkflowTest(TestCase):
         payload = response.json()
         self.assertEqual([item["pk"] for item in payload],
                          [str(earlier.pk), str(self.experience.pk)])
-        self.assertEqual(payload[1]["model"], "main.experience")
         for field, value in self.data.items():
             self.assertEqual(payload[1]["fields"][field], value)
+        fields = payload[1]["fields"]
+        self.assertEqual(fields["category_display"], "Internship")
+        self.assertEqual(fields["skill_list"], ["Advocacy", "Communication", "Teamwork"])
+        self.assertEqual(fields["star_count"], 0)
+        self.assertFalse(fields["is_starred"])
+        self.assertTrue(fields["is_ongoing"])
 
     def test_json_search_matches_title_or_organization_case_insensitively(self):
         for query in ("  wElFaRe  ", "bEm"):
@@ -669,33 +681,35 @@ class ExperienceWorkflowTest(TestCase):
         Experience.objects.all().delete()
         self.assertEqual(self.client.get(self.json_url).json(), [])
 
-    def test_timeline_renders_filtered_deserialized_objects(self):
+    def test_timeline_shell_preserves_filters_for_ajax_request(self):
         other = Experience.objects.create(
             **{**self.data, "title": "Excluded Role", "category": "research"}
         )
         response = self.client.get(
             self.list_url, {"q": " BEM ", "category": "internship"}
         )
-        objects = response.context["experience_list"]
-        self.assertIsInstance(objects, list)
-        self.assertEqual([obj.pk for obj in objects], [self.experience.pk])
-        self.assertEqual(objects[0].skill_list, ["Advocacy", "Communication", "Teamwork"])
-        self.assertContains(response, self.experience.title)
+        self.assertNotIn("experience_list", response.context)
+        self.assertNotContains(response, self.experience.title)
         self.assertNotContains(response, other.title)
         self.assertContains(response, 'value="BEM"')
         self.assertContains(response, 'value="internship" selected')
-        self.assertContains(response, "1 experience found")
+        self.assertContains(response, "fetchExperiences")
+        payload = self.client.get(
+            self.json_url, {"q": " BEM ", "category": "internship"}
+        ).json()
+        self.assertEqual([item["pk"] for item in payload], [str(self.experience.pk)])
         self.assertContains(response, "Clear filters")
 
     def test_filtered_empty_state_differs_from_empty_database(self):
         response = self.client.get(self.list_url, {"q": "Missing"})
         self.assertContains(response, "No experiences match these filters.")
-        self.assertContains(response, "0 experiences found")
-        self.assertNotContains(response, "No experiences have been added yet.")
+        self.assertEqual(
+            self.client.get(self.json_url, {"q": "Missing"}).json(), []
+        )
         Experience.objects.all().delete()
         response = self.client.get(self.list_url)
         self.assertContains(response, "No experiences have been added yet.")
-        self.assertNotContains(response, "Clear filters")
+        self.assertEqual(self.client.get(self.json_url).json(), [])
 
 
 class CertificationTest(TestCase):

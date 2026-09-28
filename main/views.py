@@ -3,9 +3,8 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import PermissionDenied
-from django.core import serializers
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -108,11 +107,8 @@ def show_main(request):
 
 
 def show_experience(request):
-    json_response = get_experiences_json(request)
-    experiences = serializers.deserialize("json", json_response.content.decode("utf-8"))
     context = {
         "name": "Sultan Noor Dafiq",
-        "experience_list": [experience.object for experience in experiences],
         "experience_query": request.GET.get("q", "").strip(),
         "category_query": request.GET.get("category", "").strip(),
         "experience_categories": Experience.EXPERIENCE_CHOICES,
@@ -122,7 +118,7 @@ def show_experience(request):
 
 
 def get_experiences_json(request):
-    experiences = Experience.objects.all()
+    experiences = Experience.objects.prefetch_related("starred_by").all()
     query = request.GET.get("q", "").strip()
     category = request.GET.get("category", "").strip()
 
@@ -133,25 +129,42 @@ def get_experiences_json(request):
     if category:
         experiences = experiences.filter(category=category)
 
-    return HttpResponse(
-        serializers.serialize(
-            "json",
-            experiences,
-            fields=(
-                "title",
-                "organization",
-                "period",
-                "display_order",
-                "description",
-                "category",
-                "thumbnail",
-                "started_at",
-                "ended_at",
-                "skills",
-            ),
-        ),
-        content_type="application/json",
-    )
+    data = []
+    for experience in experiences:
+        starred_users = experience.starred_by.all()
+        data.append(
+            {
+                "pk": str(experience.id),
+                "fields": {
+                    "title": experience.title,
+                    "organization": experience.organization,
+                    "period": experience.period,
+                    "display_order": experience.display_order,
+                    "description": experience.description,
+                    "category": experience.category,
+                    "category_display": experience.get_category_display(),
+                    "thumbnail": experience.thumbnail,
+                    "started_at": experience.started_at.isoformat(),
+                    "ended_at": (
+                        experience.ended_at.isoformat()
+                        if experience.ended_at
+                        else None
+                    ),
+                    "is_ongoing": experience.is_ongoing,
+                    "skills": experience.skills,
+                    "skill_list": experience.skill_list,
+                    "star_count": len(starred_users),
+                    "is_starred": (
+                        request.user.is_authenticated
+                        and any(
+                            user.pk == request.user.pk for user in starred_users
+                        )
+                    ),
+                },
+            }
+        )
+
+    return JsonResponse(data, safe=False)
 
 
 @login_required(login_url="/login/")
