@@ -109,6 +109,7 @@ def show_main(request):
 def show_experience(request):
     context = {
         "name": "Sultan Noor Dafiq",
+        "form": ExperienceForm(),
         "experience_query": request.GET.get("q", "").strip(),
         "category_query": request.GET.get("category", "").strip(),
         "experience_categories": Experience.EXPERIENCE_CHOICES,
@@ -165,6 +166,31 @@ def get_experiences_json(request):
         )
 
     return JsonResponse(data, safe=False)
+
+
+@require_POST
+def create_experience_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Only the portfolio owner can add experiences."},
+            status=403,
+        )
+
+    form = ExperienceForm(request.POST)
+    if form.is_valid():
+        experience = form.save()
+        return JsonResponse(
+            {
+                "message": "Experience added successfully.",
+                "pk": str(experience.id),
+            },
+            status=201,
+        )
+
+    return JsonResponse(
+        {"errors": form.errors.get_json_data()},
+        status=400,
+    )
 
 
 @login_required(login_url="/login/")

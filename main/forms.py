@@ -137,3 +137,28 @@ class ExperienceForm(forms.ModelForm):
                 attrs={"placeholder": "Teaching, Communication, Teamwork"}
             ),
         }
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError(
+                "Role title cannot contain only HTML tags."
+            )
+        return title
+
+    def clean_organization(self):
+        return strip_tags(self.cleaned_data["organization"]).strip()
+
+    def clean_period(self):
+        return strip_tags(self.cleaned_data["period"]).strip()
+
+    def clean_description(self):
+        description = strip_tags(self.cleaned_data["description"]).strip()
+        if not description:
+            raise ValidationError(
+                "Description cannot contain only HTML tags."
+            )
+        return description
+
+    def clean_skills(self):
+        return strip_tags(self.cleaned_data["skills"]).strip()

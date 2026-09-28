@@ -1,0 +1,54 @@
+<div
+    id="add-experience-modal"
+    class="certification-form-modal"
+    popover="auto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-experience-modal-title"
+>
+    <button
+        class="certification-form-modal__backdrop"
+        type="button"
+        popovertarget="add-experience-modal"
+        popovertargetaction="hide"
+        aria-label="Close add experience form"
+    ></button>
+    <div class="certification-form-modal__content">
+        <button
+            class="certification-form-modal__close"
+            type="button"
+            popovertarget="add-experience-modal"
+            popovertargetaction="hide"
+            aria-label="Close add experience form"
+        >&times;</button>
+        <p class="section-kicker">Experience management</p>
+        <h2 id="add-experience-modal-title">Add a new experience</h2>
+        <form id="experience-form" method="post" class="portfolio-form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+                    <p
+                        id="experience-error-{{ field.name }}"
+                        class="form-error hide"
+                        aria-live="polite"
+                    ></p>
+                </div>
+            {% endfor %}
+            <div class="certification-form-modal__actions">
+                <button
+                    class="form-secondary-action"
+                    type="button"
+                    popovertarget="add-experience-modal"
+                    popovertargetaction="hide"
+                >Cancel</button>
+                <button class="form-primary-action" type="submit">Add experience</button>
+            </div>
+            <noscript>
+                <p><a href="{% url 'main:create_experience' %}">Open the full-page form</a></p>
+            </noscript>
+        </form>
+    </div>
+</div>

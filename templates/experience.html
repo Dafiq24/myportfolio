@@ -12,10 +12,14 @@
                     <h1>Learning through real responsibilities</h1>
                     <p>A collection of roles that shaped how I communicate, collaborate, and turn ideas into meaningful contributions.</p>
                     {% if user.is_superuser %}
-                        <a class="experience-add-action" href="{% url 'main:create_experience' %}">
+                        <button
+                            class="experience-add-action"
+                            type="button"
+                            popovertarget="add-experience-modal"
+                        >
                             <span aria-hidden="true">+</span>
                             Add experience
-                        </a>
+                        </button>
                     {% endif %}
                 </div>
 
@@ -102,8 +106,13 @@
         </section>
     </main>
 
+    {% if user.is_superuser %}
+        {% include "components/experience_form_modal.html" %}
+    {% endif %}
+
     <script>
         const EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+        const CREATE_EXPERIENCE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
         const EDIT_EXPERIENCE_URL_TEMPLATE = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
         const DELETE_EXPERIENCE_URL_TEMPLATE = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
         const STAR_EXPERIENCE_URL_TEMPLATE = "{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}";
@@ -125,6 +134,7 @@
         const categoryInput = document.getElementById("experience-category");
         const clearFiltersButton = document.getElementById("experience-clear-filters");
         const retryButton = document.getElementById("experience-retry");
+        const experienceForm = document.getElementById("experience-form");
 
         let experiencesAbortController;
         let experiencesSearchTimeout;
@@ -136,6 +146,21 @@
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#39;");
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie) {
+                document.cookie.split(";").some((rawCookie) => {
+                    const cookie = rawCookie.trim();
+                    if (cookie.startsWith(`${name}=`)) {
+                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            return cookieValue;
         }
 
         function experienceUrl(template, experienceId) {
@@ -338,6 +363,83 @@
             }, EXPERIENCE_SEARCH_DEBOUNCE_MS);
         }
 
+        function clearExperienceFormErrors() {
+            if (!experienceForm) return;
+            experienceForm.querySelectorAll(".form-error").forEach((error) => {
+                error.textContent = "";
+                error.classList.add("hide");
+            });
+            experienceForm.querySelectorAll("[aria-invalid='true']").forEach((field) => {
+                field.removeAttribute("aria-invalid");
+                field.removeAttribute("aria-describedby");
+            });
+        }
+
+        function displayExperienceFormErrors(errors) {
+            Object.entries(errors).forEach(([fieldName, fieldErrors]) => {
+                const errorElement = document.getElementById(`experience-error-${fieldName}`);
+                const formField = experienceForm.elements.namedItem(fieldName);
+                if (!errorElement) return;
+
+                errorElement.textContent = fieldErrors
+                    .map((error) => error.message)
+                    .join(" ");
+                errorElement.classList.remove("hide");
+                if (formField instanceof HTMLElement) {
+                    formField.setAttribute("aria-invalid", "true");
+                    formField.setAttribute("aria-describedby", errorElement.id);
+                }
+            });
+        }
+
+        function closeExperienceModal() {
+            const modal = document.getElementById("add-experience-modal");
+            if (modal?.matches(":popover-open")) modal.hidePopover();
+        }
+
+        async function addExperience(event) {
+            event.preventDefault();
+            clearExperienceFormErrors();
+            const submitButton = experienceForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch(CREATE_EXPERIENCE_ENDPOINT, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": getCookie("csrftoken") },
+                    body: new FormData(experienceForm),
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    experienceForm.reset();
+                    closeExperienceModal();
+                    showToast("Success", result.message, "success");
+                    await fetchExperiences(
+                        searchInput.value.trim(),
+                        categoryInput.value,
+                    );
+                    return;
+                }
+
+                if (result.errors) displayExperienceFormErrors(result.errors);
+                const messages = result.errors
+                    ? Object.values(result.errors).flat().map((error) => error.message)
+                    : [result.message || `Request failed with status ${response.status}.`];
+                showToast("Unable to add experience", messages.join(" "), "error", 5000);
+            } catch (error) {
+                console.error("Error adding experience:", error);
+                showToast(
+                    "Unable to add experience",
+                    "The server could not be reached. Please try again.",
+                    "error",
+                    5000,
+                );
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
         searchForm.addEventListener("submit", (event) => {
             event.preventDefault();
             clearExperienceSearchTimeout();
@@ -356,6 +458,7 @@
             fetchExperiences();
         });
         retryButton.addEventListener("click", applyExperienceFilters);
+        if (experienceForm) experienceForm.addEventListener("submit", addExperience);
 
         fetchExperiences(searchInput.value.trim(), categoryInput.value);
     </script>

@@ -4,6 +4,7 @@ from main.views import (
     create_certification,
     create_certification_ajax,
     create_experience,
+    create_experience_ajax,
     delete_certification,
     delete_experience,
     get_certifications_json,
@@ -30,6 +31,11 @@ urlpatterns = [
     path("experience/", show_experience, name="show_experience"),
     path("api/experiences/", get_experiences_json, name="get_experiences_json"),
     path("experience/add/", create_experience, name="create_experience"),
+    path(
+        "experience/add-ajax/",
+        create_experience_ajax,
+        name="create_experience_ajax",
+    ),
     path(
         "experience/<uuid:experience_id>/edit/",
         update_experience,

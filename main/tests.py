@@ -329,6 +329,7 @@ class ExperienceWorkflowTest(TestCase):
         )
         self.list_url = reverse("main:show_experience")
         self.create_url = reverse("main:create_experience")
+        self.ajax_create_url = reverse("main:create_experience_ajax")
         self.json_url = reverse("main:get_experiences_json")
         self.update_url = reverse(
             "main:update_experience", args=[self.experience.pk]
@@ -359,6 +360,41 @@ class ExperienceWorkflowTest(TestCase):
                 self.assertFalse(form.is_valid())
                 self.assertIn(field, form.errors)
 
+    def test_form_strips_html_from_experience_text_fields(self):
+        form = ExperienceForm(
+            {
+                **self.data,
+                "title": "<strong>Student Welfare Intern</strong>",
+                "organization": "<em>BEM Fasilkom UI</em>",
+                "period": "<span>September - December 2025</span>",
+                "description": "<b>Coordinated</b> student advocacy.",
+                "skills": "<i>Advocacy</i>, Communication",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["title"], "Student Welfare Intern")
+        self.assertEqual(form.cleaned_data["organization"], "BEM Fasilkom UI")
+        self.assertEqual(
+            form.cleaned_data["period"],
+            "September - December 2025",
+        )
+        self.assertEqual(
+            form.cleaned_data["description"],
+            "Coordinated student advocacy.",
+        )
+        self.assertEqual(
+            form.cleaned_data["skills"],
+            "Advocacy, Communication",
+        )
+
+    def test_form_rejects_required_text_containing_only_html_tags(self):
+        for field in ("title", "description"):
+            with self.subTest(field=field):
+                form = ExperienceForm({**self.data, field: "<strong></strong>"})
+                self.assertFalse(form.is_valid())
+                self.assertIn(field, form.errors)
+
     def test_create_page_uses_shared_template_and_csrf(self):
         self.client.force_login(self.owner)
         response = self.client.get(self.create_url)
@@ -381,6 +417,59 @@ class ExperienceWorkflowTest(TestCase):
         self.assertEqual(Experience.objects.count(), 2)
         self.assertContains(response, "Experience added successfully.")
         self.assertContains(response, "Dismiss notification")
+
+    def test_ajax_create_rejects_get(self):
+        self.client.force_login(self.owner)
+
+        self.assertEqual(self.client.get(self.ajax_create_url).status_code, 405)
+
+    def test_ajax_create_returns_json_403_for_non_owner(self):
+        anonymous_response = self.client.post(self.ajax_create_url, {})
+        self.assertEqual(anonymous_response.status_code, 403)
+        self.assertEqual(
+            anonymous_response["Content-Type"],
+            "application/json",
+        )
+
+        self.client.force_login(self.regular_user)
+        regular_response = self.client.post(self.ajax_create_url, {})
+        self.assertEqual(regular_response.status_code, 403)
+        self.assertIn("message", regular_response.json())
+
+    def test_ajax_create_returns_field_validation_errors(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.ajax_create_url,
+            {**self.data, "title": ""},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", response.json()["errors"])
+        self.assertEqual(Experience.objects.count(), 1)
+
+    def test_ajax_create_returns_201_and_saves_cleaned_experience(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            self.ajax_create_url,
+            {
+                **self.data,
+                "title": "<strong>AJAX Experience</strong>",
+                "description": "Created <em>without</em> a reload.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("pk", response.json())
+        created = Experience.objects.get(title="AJAX Experience")
+        self.assertEqual(created.description, "Created without a reload.")
+
+    def test_ajax_create_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.owner)
+        response = csrf_client.post(self.ajax_create_url, self.data)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Experience.objects.count(), 1)
 
     def test_invalid_create_preserves_count_and_input(self):
         self.client.force_login(self.owner)
@@ -715,6 +804,26 @@ class ExperienceWorkflowTest(TestCase):
             'categoryInput.addEventListener("change", () =>',
         )
         self.assertContains(response, "experiencesAbortController.abort()")
+
+    def test_ajax_create_modal_and_script_are_only_available_to_owner(self):
+        anonymous_response = self.client.get(self.list_url)
+        self.assertNotContains(anonymous_response, 'id="add-experience-modal"')
+        self.assertNotContains(anonymous_response, 'id="experience-form"')
+
+        self.client.force_login(self.owner)
+        owner_response = self.client.get(self.list_url)
+        self.assertContains(
+            owner_response,
+            'popovertarget="add-experience-modal"',
+        )
+        self.assertContains(owner_response, 'id="add-experience-modal"')
+        self.assertContains(owner_response, 'id="experience-form"')
+        self.assertContains(owner_response, "CREATE_EXPERIENCE_ENDPOINT")
+        self.assertContains(owner_response, 'getCookie("csrftoken")')
+        self.assertContains(owner_response, "new FormData(experienceForm)")
+        self.assertContains(owner_response, "displayExperienceFormErrors")
+        self.assertContains(owner_response, "showToast(")
+        self.assertContains(owner_response, "await fetchExperiences(")
 
     def test_filtered_empty_state_differs_from_empty_database(self):
         response = self.client.get(self.list_url, {"q": "Missing"})

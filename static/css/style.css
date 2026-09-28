@@ -282,8 +282,10 @@ h3,
     background-color: var(--accent-dark);
     border: 2px solid var(--accent);
     border-radius: var(--radius);
+    font: inherit;
     font-weight: 700;
     text-decoration: none;
+    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
