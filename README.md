@@ -604,6 +604,19 @@ Regression test baru memeriksa durasi debounce, event `input`, penggunaan `setTi
 
 Chapter ini belum mengubah operasi create menjadi AJAX. Langkah berikutnya akan menyediakan modal Experience yang memakai `ModelForm`, endpoint POST dengan respons JSON dan status HTTP yang tepat, CSRF token, error per field, serta pembaruan timeline tanpa reload. Pemisahan ini membuat perilaku read/search dapat diaudit terpisah dari mutation dan validasi input.
 
+#### (00.07 - 01.23 9/29/2026)
+Chapter ketiga memindahkan create Experience ke modal AJAX tanpa menghapus form halaman penuh yang sudah tersedia. Tombol **Add experience** milik superuser sekarang membuka popover dialog yang merender seluruh field `ExperienceForm`, help text, tempat error per field, tombol cancel, dan submit. Sebuah tautan di dalam `noscript` tetap menuju `/experience/add/`, sehingga jalur create lama menjadi progressive fallback apabila JavaScript tidak tersedia. Komponen modal menggunakan pola visual responsif yang sama dengan Certification, sedangkan toast reusable tetap disediakan oleh base template.
+
+Named route `main:create_experience_ajax` ditambahkan pada `/experience/add-ajax/` dan hanya menerima POST melalui `@require_POST`. View memeriksa `request.user.is_superuser` sebelum memproses form. Anonymous, user biasa, dan Editor memperoleh response JSON 403; request GET memperoleh 405; input yang tidak valid mengembalikan JSON error per field dengan status 400; sedangkan data valid disimpan melalui `ExperienceForm` dan mengembalikan pesan serta UUID baru dengan status 201. Endpoint sengaja mengembalikan JSON 403 secara langsung alih-alih redirect HTML login karena pemanggilnya adalah JavaScript yang harus dapat membedakan authorization failure dari hasil validasi.
+
+JavaScript mengirim `FormData` dan header `X-CSRFToken` yang dibaca dari cookie CSRF. Tombol submit dinonaktifkan selama request untuk mencegah submit ganda dan selalu dipulihkan pada blok `finally`. Response 400 menampilkan toast sekaligus menempelkan pesan pada field terkait menggunakan `aria-invalid` dan `aria-describedby`. Response sukses mereset form, menutup modal, menampilkan toast, lalu memanggil kembali `fetchExperiences` dengan query dan category yang sedang aktif. Timeline diperbarui tanpa document reload; apabila objek baru tidak cocok dengan filter aktif, objek tersebut baru terlihat setelah filter dibersihkan.
+
+`ExperienceForm` memperoleh pembersihan server-side untuk title, organization, period, description, dan skills menggunakan `strip_tags` serta `strip`. Title atau description yang hanya terdiri dari tag ditolak agar nilai wajib tidak berubah menjadi string kosong setelah dibersihkan. Perlindungan ini melengkapi `escapeHtml` pada rendering JavaScript: server membatasi nilai yang disimpan, sedangkan browser tetap memperlakukan data response sebagai teks yang tidak dipercaya. Sanitasi, escaping, CSRF, authentication, dan authorization menangani risiko yang berbeda dan tidak saling menggantikan.
+
+Delapan test terfokus memeriksa pembersihan form, penolakan nilai wajib berbasis tag, GET 405, JSON 403, validasi 400, create 201, CSRF 403, serta visibilitas modal dan script bagi superuser. Seluruh 103 test proyek kemudian lulus. System check, migration check, pemeriksaan sintaks JavaScript, dan `git diff --check` juga bersih. Pengujian browser memastikan modal dan error field bekerja, POST 201 diikuti pemuatan JSON baru, toast tampil, timeline berubah tanpa reload, tag HTML tidak dirender aktif, dan kontrol Add tidak terlihat bagi user tanpa hak. Implementasi disimpan pada commit `f036af4`.
+
+Fungsionalitas inti Tugas 5 telah tersedia setelah chapter ini: manual JSON delivery, loading/error/empty state, debounced search, request cancellation, modal AJAX create, CSRF, permission, toast, dan perlindungan XSS berlapis. Chapter berikutnya difokuskan pada audit akhir, pengujian PWS, peninjauan kualitas kode, pelengkapan instruksi setup, AI disclosure dan log prompting, serta jawaban reflektif berdasarkan implementasi final.
+
 
 ### Catatan Tugas 5
 
@@ -616,7 +629,7 @@ python manage.py test
 python manage.py runserver
 ```
 
-Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Fitur create asynchronous, toast Experience, dan audit akhir belum dinyatakan selesai setelah chapter kedua.
+Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Create asynchronous dan toast Experience sudah tersedia setelah chapter ketiga; audit akhir, AI disclosure lengkap, log prompting, dan jawaban reflektif belum dinyatakan selesai.
 
 
 ### Transparansi Penggunaan AI Tugas 5
