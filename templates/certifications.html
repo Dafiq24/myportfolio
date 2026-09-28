@@ -15,14 +15,18 @@
                         across business, data, artificial intelligence, and web development.
                     </p>
                     {% if user.is_superuser %}
-                        <a class="certificate-add-action" href="{% url 'main:create_certification' %}">
+                        <button
+                            class="certificate-add-action"
+                            type="button"
+                            popovertarget="add-certification-modal"
+                        >
                             <span aria-hidden="true">+</span>
                             Add certification
-                        </a>
+                        </button>
                     {% endif %}
                 </div>
 
-                <form class="certificate-search" method="get" action="{% url 'main:show_certifications' %}" role="search">
+                <form id="certificate-search-form" class="certificate-search" role="search">
                     <label for="certificate-title-search">Search certifications by title</label>
                     <div class="certificate-search-controls">
                         <input
@@ -31,68 +35,296 @@
                             type="search"
                             value="{{ title_query }}"
                             placeholder="e.g. Gemini or Java"
+                            autocomplete="off"
                         >
                         <button type="submit">Search</button>
-                        {% if title_query %}
-                            <a href="{% url 'main:show_certifications' %}">Clear</a>
-                        {% endif %}
+                        <button id="certificate-search-clear" class="certificate-search-clear hide" type="button">
+                            Clear
+                        </button>
                     </div>
                 </form>
+
+                <p id="certificate-result-summary" class="certificate-result-summary" aria-live="polite"></p>
+                <div id="certificate-loading" class="certificate-state" role="status">
+                    <span class="certificate-loading-indicator" aria-hidden="true"></span>
+                    <p>Loading certifications...</p>
+                </div>
+                <div id="certificate-error" class="certificate-state hide" role="alert">
+                    <p>Unable to load certifications. Please try again.</p>
+                    <button id="certificate-retry" type="button">Try again</button>
+                </div>
+                <div id="certificate-empty" class="certificate-state hide">
+                    <p>No certifications have been added yet.</p>
+                </div>
             </div>
 
-            {% if certification_list %}
-                <div class="certificate-carousel{% if certification_list|length == 1 %} certificate-carousel-single{% endif %}" aria-label="Selected certificates">
-                    <div class="certificate-track{% if certification_list|length == 1 %} certificate-track-static{% endif %}">
-                        <div class="certificate-set">
-                            {% for certification in certification_list %}
-                                <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}">
-                                    <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
-                                    <span class="certificate-details">
-                                        <span class="certificate-type">{{ certification.get_category_display }}</span>
-                                        <strong>{{ certification.title }}</strong>
-                                        <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
-                                    </span>
-                                </a>
-                            {% endfor %}
-                        </div>
-
-                        {% if certification_list|length > 1 %}
-                            <div class="certificate-set" aria-hidden="true">
-                                {% for certification in certification_list %}
-                                    <a class="certificate-card{% if certification.is_featured %} certificate-card-featured{% endif %}" href="#certificate-{{ certification.id }}" tabindex="-1">
-                                        <img src="{% static certification.image_path %}" alt="">
-                                        <span class="certificate-details">
-                                            <span class="certificate-type">{{ certification.get_category_display }}</span>
-                                            <strong>{{ certification.title }}</strong>
-                                            <span>{{ certification.issuer }} &middot; {{ certification.issued_year }}</span>
-                                        </span>
-                                    </a>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {% for certification in certification_list %}
-                    <div class="lightbox certificate-lightbox" id="certificate-{{ certification.id }}" role="dialog" aria-modal="true" aria-label="{{ certification.title }} certificate">
-                        <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
-                        <figure class="lightbox-content certificate-lightbox-content">
-                            <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
-                            <img src="{% static certification.image_path %}" alt="{{ certification.title }} certificate">
-                            <figcaption>{{ certification.title }} &middot; {{ certification.issuer }} &middot; {{ certification.issued_year }}</figcaption>
-                            <a class="certificate-detail-link" href="{% url 'main:show_certification_detail' certification.id %}">View certificate details</a>
-                        </figure>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <div class="container">
-                    {% if title_query %}
-                        <p class="empty-state">No certifications match “{{ title_query }}”.</p>
-                    {% else %}
-                        <p class="empty-state">No certifications have been added yet.</p>
-                    {% endif %}
-                </div>
-            {% endif %}
+            <div id="certificate-carousel" class="certificate-carousel hide" aria-label="Selected certificates">
+                <div id="certificate-track" class="certificate-track"></div>
+            </div>
+            <div id="certificate-lightboxes"></div>
         </section>
     </main>
+
+    {% if user.is_superuser %}
+        {% include "components/certification_form_modal.html" %}
+    {% endif %}
+
+    <script>
+        const CERTIFICATIONS_ENDPOINT = "{% url 'main:get_certifications_json' %}";
+        const CREATE_CERTIFICATION_ENDPOINT = "{% url 'main:create_certification_ajax' %}";
+        const STATIC_URL = "{% static '' %}";
+        const DETAIL_URL_TEMPLATE = "{% url 'main:show_certification_detail' '00000000-0000-0000-0000-000000000000' %}";
+        const SEARCH_DEBOUNCE_DELAY = 300;
+
+        const loadingState = document.getElementById("certificate-loading");
+        const errorState = document.getElementById("certificate-error");
+        const emptyState = document.getElementById("certificate-empty");
+        const carousel = document.getElementById("certificate-carousel");
+        const track = document.getElementById("certificate-track");
+        const lightboxContainer = document.getElementById("certificate-lightboxes");
+        const resultSummary = document.getElementById("certificate-result-summary");
+        const searchForm = document.getElementById("certificate-search-form");
+        const searchInput = document.getElementById("certificate-title-search");
+        const clearSearchButton = document.getElementById("certificate-search-clear");
+        const retryButton = document.getElementById("certificate-retry");
+        const certificationForm = document.getElementById("certification-form");
+
+        let certificationsAbortController;
+        let searchDebounceTimer;
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie) {
+                document.cookie.split(";").some((rawCookie) => {
+                    const cookie = rawCookie.trim();
+                    if (cookie.startsWith(`${name}=`)) {
+                        cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                        return true;
+                    }
+                    return false;
+                });
+            }
+            return cookieValue;
+        }
+
+        function displayCertificateState(state) {
+            loadingState.classList.toggle("hide", state !== "loading");
+            errorState.classList.toggle("hide", state !== "error");
+            emptyState.classList.toggle("hide", state !== "empty");
+            carousel.classList.toggle("hide", state !== "ready");
+        }
+
+        function detailUrlFor(certificationId) {
+            return DETAIL_URL_TEMPLATE.replace(
+                "00000000-0000-0000-0000-000000000000",
+                certificationId,
+            );
+        }
+
+        function imageUrlFor(imagePath) {
+            return `${STATIC_URL}${String(imagePath ?? "").replace(/^\/+/, "")}`;
+        }
+
+        function buildCertificateCardMarkup(item, duplicate = false) {
+            const certification = item.fields;
+            const starLabel = certification.is_starred ? "Starred by you" : "Not starred by you";
+
+            return `
+                <a
+                    class="certificate-card${certification.is_featured ? " certificate-card-featured" : ""}"
+                    href="#certificate-${escapeHtml(item.pk)}"
+                    ${duplicate ? 'tabindex="-1"' : ""}
+                >
+                    <img
+                        src="${escapeHtml(imageUrlFor(certification.image_path))}"
+                        alt="${escapeHtml(certification.title)} certificate"
+                    >
+                    <span class="certificate-details">
+                        <span class="certificate-type">${escapeHtml(certification.category_display)}</span>
+                        <strong>${escapeHtml(certification.title)}</strong>
+                        <span>${escapeHtml(certification.issuer)} &middot; ${escapeHtml(certification.issued_year)}</span>
+                        <span class="certificate-card-stars" aria-label="${escapeHtml(certification.star_count)} stars; ${starLabel}">
+                            <span aria-hidden="true">★</span>
+                            ${escapeHtml(certification.star_count)}
+                        </span>
+                    </span>
+                </a>
+            `;
+        }
+
+        function buildCertificateLightboxMarkup(item) {
+            const certification = item.fields;
+            return `
+                <div
+                    class="lightbox certificate-lightbox"
+                    id="certificate-${escapeHtml(item.pk)}"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="${escapeHtml(certification.title)} certificate"
+                >
+                    <a class="lightbox-backdrop" href="#certifications" aria-label="Close certificate preview"></a>
+                    <figure class="lightbox-content certificate-lightbox-content">
+                        <a class="lightbox-close" href="#certifications" aria-label="Close certificate preview">&times;</a>
+                        <img
+                            src="${escapeHtml(imageUrlFor(certification.image_path))}"
+                            alt="${escapeHtml(certification.title)} certificate"
+                        >
+                        <figcaption>
+                            ${escapeHtml(certification.title)} &middot;
+                            ${escapeHtml(certification.issuer)} &middot;
+                            ${escapeHtml(certification.issued_year)}
+                        </figcaption>
+                        <a class="certificate-detail-link" href="${escapeHtml(detailUrlFor(item.pk))}">
+                            View certificate details
+                        </a>
+                    </figure>
+                </div>
+            `;
+        }
+
+        function renderCertifications(certifications) {
+            const firstSet = certifications
+                .map((item) => buildCertificateCardMarkup(item))
+                .join("");
+            const duplicateSet = certifications.length > 1
+                ? `<div class="certificate-set" aria-hidden="true">${certifications
+                    .map((item) => buildCertificateCardMarkup(item, true))
+                    .join("")}</div>`
+                : "";
+
+            track.className = certifications.length === 1
+                ? "certificate-track certificate-track-static"
+                : "certificate-track";
+            carousel.classList.toggle("certificate-carousel-single", certifications.length === 1);
+            track.innerHTML = `<div class="certificate-set">${firstSet}</div>${duplicateSet}`;
+            lightboxContainer.innerHTML = certifications
+                .map((item) => buildCertificateLightboxMarkup(item))
+                .join("");
+        }
+
+        async function fetchCertifications(searchQuery = "") {
+            if (certificationsAbortController) certificationsAbortController.abort();
+            certificationsAbortController = new AbortController();
+            displayCertificateState("loading");
+            resultSummary.textContent = "";
+
+            try {
+                const url = searchQuery
+                    ? `${CERTIFICATIONS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}`
+                    : CERTIFICATIONS_ENDPOINT;
+                const response = await fetch(url, {
+                    headers: { Accept: "application/json" },
+                    signal: certificationsAbortController.signal,
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const certifications = await response.json();
+                clearSearchButton.classList.toggle("hide", !searchQuery);
+                const pageUrl = searchQuery
+                    ? `?title=${encodeURIComponent(searchQuery)}`
+                    : window.location.pathname;
+                window.history.replaceState({}, "", pageUrl);
+
+                if (certifications.length === 0) {
+                    emptyState.querySelector("p").textContent = searchQuery
+                        ? `No certifications match “${searchQuery}”.`
+                        : "No certifications have been added yet.";
+                    resultSummary.textContent = searchQuery
+                        ? `0 certifications found for “${searchQuery}”.`
+                        : "0 certifications found.";
+                    track.innerHTML = "";
+                    lightboxContainer.innerHTML = "";
+                    displayCertificateState("empty");
+                    return;
+                }
+
+                renderCertifications(certifications);
+                resultSummary.textContent = searchQuery
+                    ? `${certifications.length} certification${certifications.length === 1 ? "" : "s"} found for “${searchQuery}”.`
+                    : `${certifications.length} certification${certifications.length === 1 ? "" : "s"} loaded.`;
+                displayCertificateState("ready");
+            } catch (error) {
+                if (error.name === "AbortError") return;
+                console.error("Error loading certifications:", error);
+                resultSummary.textContent = "Certification data could not be loaded.";
+                displayCertificateState("error");
+            }
+        }
+
+        function searchCertifications() {
+            fetchCertifications(searchInput.value.trim());
+        }
+
+        function closeCertificationModal() {
+            const modal = document.getElementById("add-certification-modal");
+            if (modal?.matches(":popover-open")) modal.hidePopover();
+        }
+
+        async function addCertification(event) {
+            event.preventDefault();
+            const submitButton = certificationForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const response = await fetch(CREATE_CERTIFICATION_ENDPOINT, {
+                    method: "POST",
+                    headers: { "X-CSRFToken": getCookie("csrftoken") },
+                    body: new FormData(certificationForm),
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (response.ok) {
+                    certificationForm.reset();
+                    closeCertificationModal();
+                    showToast("Success", result.message, "success");
+                    await fetchCertifications(searchInput.value.trim());
+                    return;
+                }
+
+                const messages = result.errors
+                    ? Object.values(result.errors).flat().map((error) => error.message)
+                    : [result.message || `Request failed with status ${response.status}.`];
+                showToast("Unable to add certification", messages.join(" "), "error", 5000);
+            } catch (error) {
+                console.error("Error adding certification:", error);
+                showToast(
+                    "Unable to add certification",
+                    "The server could not be reached. Please try again.",
+                    "error",
+                    5000,
+                );
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        searchInput.addEventListener("input", () => {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(searchCertifications, SEARCH_DEBOUNCE_DELAY);
+        });
+        searchForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            clearTimeout(searchDebounceTimer);
+            searchCertifications();
+        });
+        clearSearchButton.addEventListener("click", () => {
+            clearTimeout(searchDebounceTimer);
+            searchInput.value = "";
+            searchInput.focus();
+            fetchCertifications();
+        });
+        retryButton.addEventListener("click", searchCertifications);
+        if (certificationForm) certificationForm.addEventListener("submit", addCertification);
+
+        fetchCertifications(searchInput.value.trim());
+    </script>
 {% endblock content %}

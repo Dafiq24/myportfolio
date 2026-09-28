@@ -1,4 +1,6 @@
 from django import forms
+from django.core.exceptions import ValidationError
+from django.utils.html import strip_tags
 
 from main.models import Certification, Experience
 
@@ -53,6 +55,33 @@ class CertificationForm(forms.ModelForm):
             ),
             "is_featured": forms.CheckboxInput(),
         }
+
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data["title"]).strip()
+        if not title:
+            raise ValidationError(
+                "Certification title cannot contain only HTML tags."
+            )
+        return title
+
+    def clean_issuer(self):
+        issuer = strip_tags(self.cleaned_data["issuer"]).strip()
+        if not issuer:
+            raise ValidationError(
+                "Issuing organization cannot contain only HTML tags."
+            )
+        return issuer
+
+    def clean_image_path(self):
+        image_path = strip_tags(self.cleaned_data["image_path"]).strip()
+        if not image_path:
+            raise ValidationError(
+                "Certificate image path cannot contain only HTML tags."
+            )
+        return image_path
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data["description"]).strip()
 
 
 class ExperienceForm(forms.ModelForm):

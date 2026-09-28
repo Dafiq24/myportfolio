@@ -2,6 +2,7 @@ from django.urls import path
 
 from main.views import (
     create_certification,
+    create_certification_ajax,
     create_experience,
     delete_certification,
     delete_experience,
@@ -54,6 +55,11 @@ urlpatterns = [
         "certifications/add/",
         create_certification,
         name="create_certification",
+    ),
+    path(
+        "certifications/add-ajax/",
+        create_certification_ajax,
+        name="create_certification_ajax",
     ),
     path(
         "certifications/<uuid:certification_id>/delete/",

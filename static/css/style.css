@@ -635,7 +635,9 @@ h3,
     border: 2px solid var(--white);
     border-radius: var(--radius);
     font-weight: 700;
+    font-family: inherit;
     text-decoration: none;
+    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -818,6 +820,65 @@ h3,
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
+}
+
+.hide {
+    display: none !important;
+}
+
+.certificate-result-summary {
+    min-height: 1.5rem;
+    margin-bottom: 0.65rem;
+    color: var(--certificate-blush);
+    font-weight: 700;
+}
+
+.certificate-state {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 8rem;
+    padding: 1.25rem;
+    color: var(--certificate-night);
+    background-color: rgba(255, 255, 255, 0.92);
+    border: 2px solid var(--certificate-blue);
+    border-radius: var(--radius);
+}
+
+.certificate-state p {
+    margin: 0;
+}
+
+.certificate-state button {
+    margin-left: auto;
+    padding: 0.6rem 0.85rem;
+    color: var(--white);
+    background-color: var(--accent-dark);
+    border: 2px solid var(--certificate-blue);
+    border-radius: var(--radius);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.certificate-loading-indicator {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 3px solid var(--certificate-blue);
+    border-top-color: var(--certificate-pink);
+    border-radius: 50%;
+    animation: certificate-loading-spin 0.8s linear infinite;
+}
+
+.certificate-card-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    margin-top: 0.3rem;
+    color: var(--accent-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 .certificate-lightbox-content {
@@ -1172,6 +1233,140 @@ h3,
 .form-secondary-action:focus-visible {
     box-shadow: 4px 4px 0 var(--highlight);
     transform: translateY(-2px);
+}
+
+/* AJAX certification form modal */
+.certification-form-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    background: transparent;
+    border: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.certification-form-modal:popover-open {
+    display: flex;
+}
+
+.certification-form-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: rgba(11, 27, 43, 0.72);
+    border: 0;
+    cursor: default;
+}
+
+.certification-form-modal__content {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 720px);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: clamp(1.25rem, 3vw, 2rem);
+    color: var(--ink);
+    background-color: #e1cbd7;
+    border: 2px solid #86a8cf;
+    border-radius: var(--radius);
+    box-shadow: 10px 10px 0 #86a8cf;
+}
+
+.certification-form-modal__content h2 {
+    margin: 0.25rem 2.5rem 1.25rem 0;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.certification-form-modal__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0;
+    color: var(--accent-dark);
+    background: transparent;
+    border: 0;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.certification-form-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+/* Reusable toast */
+.toast-component {
+    position: fixed;
+    inset: auto 2rem 2rem auto;
+    z-index: 30;
+    display: none;
+    align-items: center;
+    max-width: min(28rem, calc(100vw - 2rem));
+    margin: 0;
+    padding: 1rem 1.5rem;
+    color: var(--ink);
+    background-color: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 25px rgba(11, 27, 43, 0.25);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-component:popover-open {
+    display: flex;
+}
+
+.toast-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(150%);
+}
+
+.toast-show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-title {
+    margin: 0 0 0.15rem;
+    font-family: "Space Grotesk", -apple-system, sans-serif;
+    font-size: 1rem;
+}
+
+.toast-message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.toast-success {
+    border-left: 5px solid #15803d;
+}
+
+.toast-error {
+    border-left: 5px solid #b42318;
+}
+
+.toast-normal {
+    border-left: 5px solid var(--accent);
+}
+
+@keyframes certificate-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes certificate-scroll {
@@ -2086,6 +2281,39 @@ h3,
     }
 }
 
+@media (max-width: 600px) {
+    .certificate-search-controls {
+        flex-wrap: wrap;
+    }
+
+    .certificate-search input {
+        flex-basis: 100%;
+    }
+
+    .certification-form-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .certification-form-modal__content {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .certification-form-modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .certification-form-modal__actions button {
+        width: 100%;
+    }
+
+    .toast-component {
+        inset: auto 1rem 1rem;
+    }
+}
+
 .star-form {
     display: inline-flex;
 }
@@ -2172,5 +2400,9 @@ h3,
     .certificate-track {
         animation: none;
         transform: none;
+    }
+
+    .certificate-loading-indicator {
+        animation: none;
     }
 }

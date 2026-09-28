@@ -1,0 +1,46 @@
+<div
+    id="add-certification-modal"
+    class="certification-form-modal"
+    popover="auto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="add-certification-modal-title"
+>
+    <button
+        class="certification-form-modal__backdrop"
+        type="button"
+        popovertarget="add-certification-modal"
+        popovertargetaction="hide"
+        aria-label="Close add certification form"
+    ></button>
+    <div class="certification-form-modal__content">
+        <button
+            class="certification-form-modal__close"
+            type="button"
+            popovertarget="add-certification-modal"
+            popovertargetaction="hide"
+            aria-label="Close add certification form"
+        >&times;</button>
+        <p class="section-kicker">Certification management</p>
+        <h2 id="add-certification-modal-title">Add a new milestone</h2>
+        <form id="certification-form" method="post" class="portfolio-form">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group{% if field.field.widget.input_type == 'checkbox' %} form-group-checkbox{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<p class="form-help">{{ field.help_text }}</p>{% endif %}
+                </div>
+            {% endfor %}
+            <div class="certification-form-modal__actions">
+                <button
+                    class="form-secondary-action"
+                    type="button"
+                    popovertarget="add-certification-modal"
+                    popovertargetaction="hide"
+                >Cancel</button>
+                <button class="form-primary-action" type="submit">Add certification</button>
+            </div>
+        </form>
+    </div>
+</div>

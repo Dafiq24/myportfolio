@@ -727,28 +727,25 @@ class CertificationTest(TestCase):
             "Certification",
         )
 
-    def test_certifications_page_uses_model_data(self):
+    def test_certifications_page_renders_ajax_shell_without_model_data(self):
         response = self.client.get(reverse("main:show_certifications"))
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "certifications.html")
-        self.assertContains(response, self.certification.title)
-        self.assertContains(response, self.certification.issuer)
-        self.assertContains(response, str(self.certification.issued_year))
-        self.assertContains(
-            response,
-            f'id="certificate-{self.certification.id}"',
-        )
+        self.assertNotContains(response, self.certification.title)
+        self.assertContains(response, 'id="certificate-loading"')
+        self.assertContains(response, 'id="certificate-error"')
+        self.assertContains(response, 'id="certificate-empty"')
+        self.assertContains(response, 'id="certificate-track"')
+        self.assertContains(response, reverse("main:get_certifications_json"))
 
     def test_empty_certifications_page(self):
         Certification.objects.all().delete()
         response = self.client.get(reverse("main:show_certifications"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
-            "No certifications have been added yet.",
-        )
+        self.assertContains(response, "No certifications have been added yet.")
+        self.assertContains(response, "fetchCertifications")
 
     def test_featured_certification_is_ordered_first(self):
         featured = Certification.objects.create(
@@ -787,14 +784,11 @@ class CertificationTest(TestCase):
         self.assertContains(response, self.certification.description)
         self.assertNotContains(response, "Delete certification")
 
-    def test_certifications_page_links_to_detail(self):
-        detail_url = reverse(
-            "main:show_certification_detail",
-            kwargs={"certification_id": self.certification.id},
-        )
+    def test_certifications_page_builds_detail_links_from_json_ids(self):
         response = self.client.get(reverse("main:show_certifications"))
 
-        self.assertContains(response, f'href="{detail_url}"')
+        self.assertContains(response, "DETAIL_URL_TEMPLATE")
+        self.assertContains(response, "detailUrlFor(item.pk)")
 
     def test_unknown_certification_detail_returns_404(self):
         response = self.client.get(
@@ -913,7 +907,7 @@ class CertificationTest(TestCase):
             self.certification.title,
         )
 
-    def test_certifications_page_filters_deserialized_data(self):
+    def test_certifications_page_preserves_initial_search_for_ajax(self):
         other_certification = Certification.objects.create(
             title="Java Collections Framework",
             issuer="Udemy",
@@ -927,13 +921,10 @@ class CertificationTest(TestCase):
             {"title": "Gemini"},
         )
 
-        self.assertContains(response, self.certification.title)
+        self.assertNotContains(response, self.certification.title)
         self.assertNotContains(response, other_certification.title)
-        self.assertContains(response, "certificate-track-static")
-        self.assertNotContains(
-            response,
-            '<div class="certificate-set" aria-hidden="true">',
-        )
+        self.assertContains(response, 'value="Gemini"')
+        self.assertContains(response, "SEARCH_DEBOUNCE_DELAY = 300")
 
     def test_certification_search_has_contextual_empty_state(self):
         response = self.client.get(
@@ -942,11 +933,141 @@ class CertificationTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response,
-            "No certifications match",
-        )
+        self.assertContains(response, "No certifications match")
         self.assertContains(response, "Unknown credential")
+
+    def test_certification_page_includes_debounce_xss_and_toast_protection(self):
+        response = self.client.get(reverse("main:show_certifications"))
+
+        self.assertContains(response, "function escapeHtml(value)")
+        self.assertContains(response, "clearTimeout(searchDebounceTimer)")
+        self.assertContains(response, "new AbortController()")
+        self.assertContains(response, "showToast(")
+        self.assertContains(response, 'id="toast-component"')
+
+    def test_create_certification_ajax_rejects_get(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(
+            reverse("main:create_certification_ajax")
+        )
+
+        self.assertEqual(response.status_code, 405)
+
+    def test_create_certification_ajax_returns_json_403_for_non_owner(self):
+        endpoint = reverse("main:create_certification_ajax")
+
+        anonymous_response = self.client.post(endpoint, {})
+        self.assertEqual(anonymous_response.status_code, 403)
+        self.assertEqual(
+            anonymous_response["Content-Type"],
+            "application/json",
+        )
+
+        self.client.force_login(self.regular_user)
+        regular_response = self.client.post(endpoint, {})
+        self.assertEqual(regular_response.status_code, 403)
+        self.assertIn("message", regular_response.json())
+
+    def test_create_certification_ajax_returns_validation_errors(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("main:create_certification_ajax"),
+            {
+                "title": "",
+                "issuer": "Udemy",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/course.png",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", response.json()["errors"])
+        self.assertEqual(Certification.objects.count(), 1)
+
+    def test_create_certification_ajax_creates_object_with_201(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse("main:create_certification_ajax"),
+            {
+                "title": "JavaScript Foundations",
+                "issuer": "Open Learning",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/javascript.png",
+                "credential_url": "https://example.com/javascript",
+                "description": "Asynchronous JavaScript and the DOM.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("pk", response.json())
+        self.assertTrue(
+            Certification.objects.filter(
+                title="JavaScript Foundations"
+            ).exists()
+        )
+
+    def test_create_certification_ajax_requires_csrf_token(self):
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.owner)
+        response = csrf_client.post(
+            reverse("main:create_certification_ajax"),
+            {
+                "title": "Blocked request",
+                "issuer": "Test issuer",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/blocked.png",
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Certification.objects.filter(title="Blocked request").exists()
+        )
+
+    def test_certification_form_strips_html_from_text_fields(self):
+        form = CertificationForm(
+            data={
+                "title": "<b>Safe title</b>",
+                "issuer": "<i>Safe issuer</i>",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "<span>img/certificates/safe.png</span>",
+                "credential_url": "",
+                "description": "Learned <strong>safe rendering</strong>.",
+            }
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        certification = form.save()
+        self.assertEqual(certification.title, "Safe title")
+        self.assertEqual(certification.issuer, "Safe issuer")
+        self.assertEqual(
+            certification.image_path,
+            "img/certificates/safe.png",
+        )
+        self.assertEqual(
+            certification.description,
+            "Learned safe rendering.",
+        )
+
+    def test_certification_form_rejects_title_containing_only_xss_tag(self):
+        form = CertificationForm(
+            data={
+                "title": '<img src="x" onerror="alert(\'XSS!\')">',
+                "issuer": "Test issuer",
+                "category": "course",
+                "issued_year": 2026,
+                "image_path": "img/certificates/xss.png",
+                "credential_url": "",
+                "description": "Security test",
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("title", form.errors)
 
     def test_delete_certification_rejects_get_requests(self):
         self.client.force_login(self.owner)
@@ -1073,15 +1194,24 @@ class CertificationTest(TestCase):
         self.assertContains(authenticated_response, "is-starred")
         self.assertContains(authenticated_response, 'aria-label="1 stars"')
 
-    def test_certification_json_uses_user_natural_keys(self):
+    def test_certification_json_exposes_star_state_without_user_identities(self):
         self.certification.starred_by.add(self.regular_user, self.owner)
-        payload = self.client.get(reverse("main:get_certifications_json")).json()
-        starred_by = payload[0]["fields"]["starred_by"]
-        self.assertCountEqual(
-            starred_by,
-            [[self.regular_user.username], [self.owner.username]],
+        anonymous_fields = self.client.get(
+            reverse("main:get_certifications_json")
+        ).json()[0]["fields"]
+        self.assertEqual(anonymous_fields["star_count"], 2)
+        self.assertFalse(anonymous_fields["is_starred"])
+        self.assertNotIn("starred_by", anonymous_fields)
+        self.assertNotContains(
+            self.client.get(reverse("main:get_certifications_json")),
+            self.regular_user.username,
         )
-        self.assertNotIn(self.regular_user.pk, starred_by)
+
+        self.client.force_login(self.regular_user)
+        authenticated_fields = self.client.get(
+            reverse("main:get_certifications_json")
+        ).json()[0]["fields"]
+        self.assertTrue(authenticated_fields["is_starred"])
 
     def test_unknown_certification_star_returns_404_for_logged_in_user(self):
         self.client.force_login(self.regular_user)
@@ -1123,7 +1253,6 @@ class CertificationTest(TestCase):
     def test_mutation_controls_follow_superuser_permissions(self):
         list_url = reverse("main:show_certifications")
         detail_url = reverse("main:show_certification_detail", args=[self.certification.pk])
-        create_url = reverse("main:create_certification")
         delete_url = reverse("main:delete_certification", args=[self.certification.pk])
 
         for user in (None, self.regular_user):
@@ -1131,11 +1260,20 @@ class CertificationTest(TestCase):
                 self.client.logout()
                 if user:
                     self.client.force_login(user)
-                self.assertNotContains(self.client.get(list_url), f'href="{create_url}"')
+                self.assertNotContains(
+                    self.client.get(list_url),
+                    'popovertarget="add-certification-modal"',
+                )
                 self.assertNotContains(self.client.get(detail_url), f'action="{delete_url}"')
 
         self.client.force_login(self.owner)
-        self.assertContains(self.client.get(list_url), f'href="{create_url}"')
+        owner_list = self.client.get(list_url)
+        self.assertContains(
+            owner_list,
+            'popovertarget="add-certification-modal"',
+        )
+        self.assertContains(owner_list, 'id="certification-form"')
+        self.assertContains(owner_list, 'name="csrfmiddlewaretoken"')
         owner_detail = self.client.get(detail_url)
         self.assertContains(owner_detail, f'action="{delete_url}"')
         self.assertContains(owner_detail, 'name="csrfmiddlewaretoken"')

@@ -5,7 +5,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.core import serializers
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -221,35 +221,78 @@ def toggle_experience_star(request, experience_id):
 
 
 def show_certifications(request):
-    json_response = get_certifications_json(request)
-    certifications = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-
     context = {
         "name": "Sultan Noor Dafiq",
-        "certification_list": [
-            certification.object for certification in certifications
-        ],
         "title_query": request.GET.get("title", "").strip(),
+        "form": CertificationForm(),
     }
     return render(request, "certifications.html", context)
 
 
 def get_certifications_json(request):
     title_query = request.GET.get("title", "").strip()
-    certifications = Certification.objects.all()
+    certifications = Certification.objects.prefetch_related("starred_by").all()
 
     if title_query:
         certifications = certifications.filter(title__icontains=title_query)
 
-    certifications_json = serializers.serialize(
-        "json",
-        certifications,
-        use_natural_foreign_keys=True,
+    data = []
+    for certification in certifications:
+        starred_users = certification.starred_by.all()
+        data.append(
+            {
+                "pk": str(certification.id),
+                "fields": {
+                    "title": certification.title,
+                    "issuer": certification.issuer,
+                    "category": certification.category,
+                    "category_display": certification.get_category_display(),
+                    "issued_year": certification.issued_year,
+                    "image_path": certification.image_path,
+                    "credential_url": certification.credential_url,
+                    "description": certification.description,
+                    "is_featured": certification.is_featured,
+                    "star_count": len(starred_users),
+                    "is_starred": (
+                        request.user.is_authenticated
+                        and any(
+                            user.pk == request.user.pk for user in starred_users
+                        )
+                    ),
+                },
+            }
+        )
+
+    return JsonResponse(data, safe=False)
+
+
+@require_POST
+def create_certification_ajax(request):
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {
+                "message": (
+                    "Only the portfolio owner can add certifications."
+                )
+            },
+            status=403,
+        )
+
+    form = CertificationForm(request.POST)
+    if form.is_valid():
+        certification = form.save()
+        return JsonResponse(
+            {
+                "message": "Certification added successfully.",
+                "pk": str(certification.id),
+            },
+            status=201,
+        )
+
+    return JsonResponse(
+        {"errors": form.errors.get_json_data()},
+        status=400,
     )
-    return HttpResponse(certifications_json, content_type="application/json")
 
 
 @login_required(login_url="/login/")
