@@ -617,32 +617,81 @@ Delapan test terfokus memeriksa pembersihan form, penolakan nilai wajib berbasis
 
 Fungsionalitas inti Tugas 5 telah tersedia setelah chapter ini: manual JSON delivery, loading/error/empty state, debounced search, request cancellation, modal AJAX create, CSRF, permission, toast, dan perlindungan XSS berlapis. Chapter berikutnya difokuskan pada audit akhir, pengujian PWS, peninjauan kualitas kode, pelengkapan instruksi setup, AI disclosure dan log prompting, serta jawaban reflektif berdasarkan implementasi final.
 
+#### (09.55 - 12.40 9/29/2026)
+Finalisasi Tugas Individu 5 diawali dengan mencocokkan kembali implementasi terhadap setiap butir pada dokumen resmi. Read path telah memakai shell halaman dan `fetch()` menuju manual `JsonResponse`, termasuk `star_count` serta `is_starred`. Antarmuka memiliki loading, empty, error dan retry. Search berdasarkan title atau organization berjalan tanpa reload dengan debounce 350 milidetik. Create tersedia di dalam modal, memakai `ExperienceForm`, response JSON 201/400/403, permission server-side, CSRF header, field errors, toast, dan refresh timeline. Semua nilai dinamis yang membentuk markup melewati `escapeHtml`, sedangkan input teks dibersihkan melalui method `clean_<field>` menggunakan `strip_tags`.
+
+Payload XSS yang dicantumkan pada instruksi, `<img src="x" onerror="alert('XSS!')">`, ditambahkan sebagai regression test eksplisit. Ketika payload dipakai sebagai title atau description, `strip_tags` menghasilkan nilai kosong dan validasi menolaknya sebelum objek dibuat. Test tersebut tersimpan pada commit `b3445ad`. Perlindungan tidak hanya bergantung pada penolakan ini: nilai JSON tetap di-escape di browser karena data lama, perubahan dari sumber lain, atau field opsional tetap harus dianggap tidak dipercaya.
+
+Audit lokal terakhir menghasilkan 104 test lulus pada database test terpisah. `python manage.py check` tidak menemukan masalah, `python manage.py makemigrations --check` menyatakan tidak ada perubahan model yang belum direkam, dan migration `0001` sampai `0006` berstatus applied. Pemeriksaan sintaks JavaScript serta `git diff --check` juga bersih selain informasi normalisasi line ending Windows. Pemeriksaan dependency dari virtual environment pengguna menghasilkan `No broken requirements found` melalui `python -m pip check`.
+
+Audit PWS dilakukan setelah commit test terakhir dikirim ke GitHub dan PWS. Timeline dan JSON dapat dibaca tanpa login; live search, category, empty state, dan retry tidak menyebabkan document reload. User biasa dapat melakukan Star/Unstar tetapi tidak memperoleh kontrol CRUD. Editor tetap dapat memperbarui Experience tanpa memperoleh Add atau Delete. Superuser dapat membuka modal, menerima error field dan toast pada input invalid, serta menambahkan data melalui POST 201 yang diikuti request JSON baru. Payload XSS tidak memunculkan alert atau tersimpan, JSON tidak mengekspos identitas pemberi star, objek pengujian dihapus setelah pemeriksaan, dan tidak ditemukan error 500.
+
+Audit otomatis dan browser memiliki batas pembuktian berbeda. Assertion terhadap source JavaScript memastikan wiring debounce tersedia tetapi tidak mengukur waktu browser secara nyata; panel Network dipakai untuk memastikan pengetikan cepat tidak mengirim request per karakter. Test client membuktikan status HTTP, CSRF, permission, dan perubahan database tetapi tidak membuktikan tampilan modal pada semua browser. PWS membuktikan perilaku deployment pada saat audit, bukan menjamin tidak ada gangguan layanan setelahnya. Karena itu, hasil akhir dicatat berdasarkan sumber bukti masing-masing dan bukan digabungkan menjadi klaim keamanan absolut.
+
 
 ### Catatan Tugas 5
 
-Dokumentasi ini akan dilengkapi pada setiap chapter. Setelah menarik perubahan terbaru, jalankan migration dan pemeriksaan proyek sebelum membuka aplikasi:
+Setelah menarik perubahan terbaru, aktifkan virtual environment, instal dependency, terapkan migration, lalu jalankan pemeriksaan sebelum membuka aplikasi:
 
 ```powershell
+python -m pip install -r requirements.txt
 python manage.py migrate
 python manage.py check
 python manage.py test
+python -m pip check
 python manage.py runserver
 ```
 
-Endpoint `/api/experiences/` bersifat read-only dan menjadi sumber data timeline `/experience/`. Nilai `is_starred` bergantung pada sesi user yang melakukan request, sedangkan `star_count` merupakan jumlah agregat. Endpoint tidak boleh dipakai untuk menyimpulkan identitas akun yang memberi star. Create asynchronous dan toast Experience sudah tersedia setelah chapter ketiga; audit akhir, AI disclosure lengkap, log prompting, dan jawaban reflektif belum dinyatakan selesai.
+Pada fresh clone, buat virtual environment terlebih dahulu dan jangan commit `.env`, database lokal, cookie, password, atau secret deployment. Route utama Tugas 5 adalah:
+
+| Route | Fungsi |
+| --- | --- |
+| `/experience/` | Shell timeline, modal superuser, live search, dan rendering data AJAX |
+| `/api/experiences/` | Endpoint JSON read-only; menerima `q` dan `category` |
+| `/experience/add-ajax/` | Endpoint POST JSON untuk create melalui modal |
+| `/experience/add/` | Form halaman penuh sebagai progressive fallback |
+
+Endpoint JSON memuat `star_count` dan status `is_starred` untuk sesi aktif, tetapi tidak mengirim identitas pemberi star. Search teks menunggu 350 milidetik setelah ketikan terakhir; category dan submit manual diproses segera. Jika data baru tidak cocok dengan filter aktif, toast sukses tetap muncul tetapi card baru terlihat setelah filter dibersihkan. Modal hanya dirender untuk superuser dan endpoint tetap memeriksa permission secara server-side. User biasa atau Editor yang mencoba POST langsung menerima JSON 403.
+
+Untuk menguji error tanpa mengubah data, kosongkan title atau description pada modal. Jangan mempertahankan payload XSS atau objek sementara pada database deployment. Warning direktori `staticfiles` saat test tidak menggagalkan suite, tetapi konfigurasi static file dan collectstatic tetap harus diperiksa pada environment deployment. Tutorial 05 merupakan prasyarat wajib dan telah diselesaikan sebelum Tugas 5 dikembangkan.
 
 
 ### Transparansi Penggunaan AI Tugas 5
 
-Log prompting, kontribusi AI, keputusan manual, koreksi, dan keterbatasan environment akan disusun setelah seluruh chapter Tugas 5 selesai. Selama pengerjaan, setiap prompt dan hasil verifikasi dicatat berdasarkan tahap agar bagian final dapat membedakan bantuan AI, pengujian otomatis, pemeriksaan browser, serta keputusan yang dilakukan secara manual.
+Codex digunakan sebagai pendamping untuk membaca ketentuan, menjelaskan konsep AJAX, memecah pekerjaan menjadi chapter, mengusulkan perubahan kode, menyusun regression test, memeriksa diff, dan menyiapkan dokumentasi. AI tidak diberi satu prompt untuk menghasilkan seluruh tugas sekaligus. Setiap tahap dibatasi pada satu acceptance criterion yang dapat diuji, kemudian hasil terminal atau browser dari saya menjadi masukan tahap berikutnya. Saya tetap memilih Experience sebagai bagian portofolio, menentukan kapan sebuah chapter dianggap aman, menjalankan commit dan push, menguji role serta Network panel, membersihkan data sementara, dan memutuskan hasil akhir.
+
+Strategi prompting mengikuti urutan **konteks, tujuan, batasan, keluaran, dan verifikasi**. Konteks menyebutkan bahwa Tutorial 05 sudah menerapkan pola pada Certification dan Tugas 5 harus memakai bagian lain. Tujuan setiap chapter dibuat spesifik, misalnya “manual JSON dan state halaman” atau “modal POST tanpa reload”. Batasan mempertahankan desain, matriks role Tugas 4, endpoint lama sebagai fallback, dan tidak mengekspos identitas user. Keluaran yang diminta mencakup kode, test, dokumentasi, serta perintah Git. Verifikasi selalu memisahkan hasil otomatis dari pemeriksaan browser dan PWS.
+
+Log berikut merangkum prompt dan tindak lanjut yang benar-benar digunakan. Isinya diringkas agar dapat diaudit tanpa menyalin seluruh percakapan atau menyertakan password, cookie, dan data sensitif:
+
+| Tahap | Prompt atau tindak lanjut utama | Kontribusi AI | Verifikasi dan keputusan manual |
+| --- | --- | --- | --- |
+| Perencanaan | “Lanjut Tugas 5 secara bertahap; gunakan bagian lain dari Tutorial 5 dan ajarkan konsepnya.” | Memetakan checklist ke Experience serta membagi pekerjaan menjadi read path, debounce, create modal, dan finalisasi. | Saya menyetujui pengerjaan per chapter dan meminta setiap chapter di-commit, didokumentasikan, lalu di-push sebelum lanjut. |
+| Fondasi AJAX | “Ubah Experience menjadi AJAX tanpa merusak star, CRUD, role, dan desain yang sudah ada.” | Mengganti deserialization server dengan manual `JsonResponse`, shell halaman, fetch, state UI, escaping, dynamic controls, dan test kontrak baru. | Saya menguji data, filter, star, serta empat role di browser; 94 test lulus sebelum commit `7133585`. |
+| Debounced search | “Tambahkan live search yang tidak mengirim request pada setiap ketukan; pertahankan submit, category, clear, dan request cancellation.” | Menambahkan debounce 350 ms, timer cancellation, immediate category/submit, dan integrasi `AbortController`. | Saya memeriksa Fetch/XHR di Network panel dan memastikan halaman tidak reload; seluruh 95 test lulus. |
+| Modal create | “Gunakan pola Tutorial 5 pada Experience dengan ModelForm, modal, JSON 201/400/403, CSRF, toast, dan refresh tanpa reload.” | Menambahkan endpoint owner-only, modal reusable, FormData, error field aksesibel, toast, fallback halaman penuh, `strip_tags`, dan test keamanan. | Saya menguji input invalid/valid, POST 201, refresh timeline, role, serta pembersihan tag; 103 test lulus. |
+| XSS dan audit | “Audit checklist resmi dan buktikan payload XSS yang dicontohkan tugas.” | Membandingkan implementasi dengan PDF dan menambahkan test `<img onerror>` pada field wajib. | Test khusus dan seluruh 104 test lulus; saya menjalankan `pip check` serta audit ulang PWS tanpa error 500. |
+| Dokumentasi | “Gunakan format tugas sebelumnya; simpan pertanyaan reflektif tetapi jawab saat finalisasi.” | Menyusun jurnal chapter, setup, disclosure, log prompting, serta jawaban reflektif berbasis implementasi. | Saya dua kali mengoreksi interpretasi AI: pertanyaan sempat tidak dicantumkan, lalu jawabannya diisi terlalu awal. Struktur akhir mempertahankan pertanyaan sejak awal dan menunda jawabannya hingga semua chapter selesai. |
+
+Koreksi dokumentasi refleksi menunjukkan keterbatasan AI yang konkret. AI awalnya melewatkan pertanyaan reflektif saat memulai README. Setelah instruksi diperiksa ulang, AI memasukkan pertanyaan beserta jawaban, padahal saya hanya ingin pertanyaannya dicatat dan jawaban ditunda. AI kemudian salah menghapus pertanyaannya juga. Saya mengoreksi bahwa pertanyaan harus tetap terlihat, sementara jawabannya baru ditulis pada finalisasi. Rangkaian ini menunjukkan bahwa pembacaan dokumen dan struktur yang tampak rapi belum menjamin maksud pengguna dipahami; diff serta konteks percakapan tetap harus ditinjau manusia.
+
+Keterbatasan environment juga dinyatakan secara transparan. Interpreter `env\Scripts\python.exe` tidak dapat dijalankan oleh proses pendamping karena menunjuk alias instalasi Python Windows yang tidak tersedia pada konteks tersebut. AI memakai runtime Python bawaan Codex dengan `site-packages` proyek untuk menjalankan Django. Saya mengulang pemeriksaan dari terminal virtual environment asli dan memperoleh `No broken requirements found`. Perbedaan runtime tidak disembunyikan atau dianggap identik, dan hasil PWS tetap diverifikasi melalui browser yang memiliki sesi role terkait.
+
+Secara teknis, sebagian test JavaScript memeriksa keberadaan wiring pada HTML, bukan menjalankan timer dalam browser sungguhan. Karena itu, debounce dan pembaruan tanpa reload diperiksa melalui Network panel. `strip_tags` bukan sanitizer HTML universal dan tidak menggantikan output escaping; implementasi tetap menjalankan `escapeHtml` sebelum menggunakan `innerHTML`. Script Experience saat ini masih berada inline di template dan class modal menggunakan styling bersama yang awalnya dinamai untuk Certification. Keduanya bekerja tetapi dapat dipisahkan menjadi module JavaScript dan class komponen generik bila proyek berkembang. Popover API, CSP, observability, rate limiting, dan pengujian end-to-end lintas browser juga merupakan pengembangan lanjutan, bukan hal yang dibuktikan oleh suite saat ini.
 
 
 ### Tugas 5
 
-> Jawaban reflektif akan dilengkapi setelah seluruh chapter Tugas 5 selesai agar pembahasannya merujuk pada implementasi final.
+1. **Jelaskan apa itu debouncing dan mengapa teknik ini penting diterapkan pada fitur pencarian yang menggunakan AJAX!**
 
-1. Jelaskan apa itu debouncing dan mengapa teknik ini penting diterapkan pada fitur pencarian yang menggunakan AJAX!
+   Debouncing adalah teknik menunda eksekusi fungsi sampai tidak ada event baru selama interval tertentu. Pada live search Experience, setiap event `input` membersihkan timer sebelumnya lalu membuat timer 350 milidetik. Jika pengguna mengetik `BEM` dengan cepat, timer untuk `B` dan `BE` dibatalkan; request baru dikirim setelah pengguna berhenti pada `BEM`. Teknik ini mengurangi request yang tidak berguna, beban server dan database, perubahan loading state berulang, serta peluang respons lama menimpa hasil terbaru. Debounce berbeda dari throttle: debounce menunggu jeda aktivitas, sedangkan throttle membatasi frekuensi selama aktivitas terus berlangsung. Proyek ini juga memakai `AbortController`. Debounce mencegah sebagian besar request sebelum dikirim, sementara abort membatalkan request lama yang sudah telanjur berjalan, sehingga keduanya saling melengkapi.
 
-2. Jelaskan fungsi dari penggunaan `await` ketika kita menggunakan `fetch()`! Apa yang akan terjadi jika kita tidak menggunakan `await`?
+2. **Jelaskan fungsi dari penggunaan `await` ketika kita menggunakan `fetch()`! Apa yang akan terjadi jika kita tidak menggunakan `await`?**
 
-3. Jelaskan apa itu serangan XSS (Cross-Site Scripting) dan mengapa data yang ditampilkan melalui AJAX/JavaScript lebih rentan terhadap serangan ini dibandingkan data yang ditampilkan langsung melalui template Django!
+   `fetch()` langsung mengembalikan `Promise`, bukan `Response` yang sudah selesai. Pada `fetchExperiences`, `await fetch(...)` menunda kelanjutan fungsi `async` sampai response header diterima sehingga kode dapat memeriksa `response.ok` dan status HTTP. Body juga dibaca asynchronous, maka `await response.json()` diperlukan untuk memperoleh array data sebelum dirender. Pada create, `await fetch(...)` memperoleh response POST, `await response.json()` membaca pesan atau error, dan `await fetchExperiences(...)` memastikan refresh timeline diselesaikan dalam alur sukses. `await` tidak membekukan seluruh browser; hanya kelanjutan fungsi `async` tersebut yang ditunda. Tanpa `await` atau `.then()`, variabel masih berupa Promise sehingga properti response maupun data JSON belum tersedia dan kode dapat mencoba merender sebelum hasil datang. Menghilangkan `await` tetap mungkin jika promise chain ditangani dengan benar, tetapi membiarkannya tanpa penanganan dapat menyebabkan race condition, error tidak tertangkap, dan state UI yang tidak konsisten.
+
+3. **Jelaskan apa itu serangan XSS (Cross-Site Scripting) dan mengapa data yang ditampilkan melalui AJAX/JavaScript lebih rentan terhadap serangan ini dibandingkan data yang ditampilkan langsung melalui template Django!**
+
+   XSS terjadi ketika data yang tidak dipercaya diperlakukan sebagai HTML atau JavaScript aktif oleh browser. Payload dapat menjalankan script, memanipulasi halaman, atau melakukan aksi menggunakan konteks user. Template Django melakukan auto-escaping pada variabel `{{ value }}` secara default, sehingga karakter khusus biasanya ditampilkan sebagai teks. Data JSON dari AJAX tidak otomatis memperoleh perlindungan template tersebut ketika JavaScript menyisipkannya sendiri ke DOM. Risiko terutama muncul saat nilai mentah dimasukkan melalui `innerHTML`; tag seperti `<img onerror=...>` dapat ditafsirkan sebagai elemen aktif. AJAX tidak secara inheren tidak aman, tetapi developer mengambil alih tanggung jawab output encoding yang sebelumnya ditangani template.
+
+   Pada proyek ini, seluruh nilai Experience yang membentuk markup melewati `escapeHtml`, sementara summary dan pesan memakai `textContent`. Di sisi server, method `clean_<field>` menjalankan `strip_tags`, dan title serta description yang berubah menjadi kosong ditolak. Payload `<img src="x" onerror="alert('XSS!')">` diuji secara eksplisit dan tidak tersimpan. Kedua lapisan tetap diperlukan karena `strip_tags` bukan sanitizer sempurna dan JSON bukan mekanisme keamanan. Perlindungan ini juga tidak menggantikan validasi, CSRF, authorization, Content Security Policy, maupun pengelolaan session yang aman.
