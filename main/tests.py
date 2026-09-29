@@ -395,6 +395,15 @@ class ExperienceWorkflowTest(TestCase):
                 self.assertFalse(form.is_valid())
                 self.assertIn(field, form.errors)
 
+    def test_form_rejects_img_onerror_xss_payload_in_required_text(self):
+        payload = '<img src="x" onerror="alert(\'XSS!\')">'
+
+        for field in ("title", "description"):
+            with self.subTest(field=field):
+                form = ExperienceForm({**self.data, field: payload})
+                self.assertFalse(form.is_valid())
+                self.assertIn(field, form.errors)
+
     def test_create_page_uses_shared_template_and_csrf(self):
         self.client.force_login(self.owner)
         response = self.client.get(self.create_url)
