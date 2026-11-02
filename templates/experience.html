@@ -113,10 +113,9 @@
     <script>
         const EXPERIENCES_ENDPOINT = "{% url 'api:experience-list' %}";
         const EXPERIENCE_DETAIL_URL_TEMPLATE = "{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}";
-        const DELETE_EXPERIENCE_URL_TEMPLATE = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
-        const STAR_EXPERIENCE_URL_TEMPLATE = "{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}";
+        const STAR_EXPERIENCE_URL_TEMPLATE = "{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}";
+        const EXPERIENCE_PAGE_URL = "{% url 'main:show_experience' %}";
         const LOGIN_URL = "{% url 'main:login' %}";
-        const CSRF_TOKEN = "{{ csrf_token }}";
         const EXPERIENCE_SEARCH_DEBOUNCE_MS = 350;
         const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
         const CAN_UPDATE_EXPERIENCE = "{% if user.is_superuser or is_editor %}true{% else %}false{% endif %}" === "true";
@@ -186,7 +185,7 @@
             const starUrl = experienceUrl(STAR_EXPERIENCE_URL_TEMPLATE, experience.id);
 
             if (!IS_AUTHENTICATED) {
-                const nextUrl = encodeURIComponent(starUrl);
+                const nextUrl = encodeURIComponent(EXPERIENCE_PAGE_URL);
                 return `
                     <a class="experience-star-action" href="${LOGIN_URL}?next=${nextUrl}">
                         <span aria-hidden="true">★</span>
@@ -197,18 +196,17 @@
             }
 
             return `
-                <form class="star-form experience-star-control" method="post" action="${escapeHtml(starUrl)}">
-                    <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(CSRF_TOKEN)}">
-                    <button
-                        class="experience-star-action${experience.is_starred ? " is-starred" : ""}"
-                        type="submit"
-                        aria-pressed="${experience.is_starred ? "true" : "false"}"
-                    >
-                        <span aria-hidden="true">★</span>
-                        ${experience.is_starred ? "Unstar" : "Star"}
-                        <span class="star-count" aria-label="${escapeHtml(experience.star_count)} stars">${escapeHtml(experience.star_count)}</span>
-                    </button>
-                </form>
+                <button
+                    class="experience-star-action experience-star-control${experience.is_starred ? " is-starred" : ""}"
+                    type="button"
+                    aria-pressed="${experience.is_starred ? "true" : "false"}"
+                    data-experience-star="${escapeHtml(experience.id)}"
+                    data-star-url="${escapeHtml(starUrl)}"
+                >
+                    <span aria-hidden="true">★</span>
+                    ${experience.is_starred ? "Unstar" : "Star"}
+                    <span class="star-count" aria-label="${escapeHtml(experience.star_count)} stars">${escapeHtml(experience.star_count)}</span>
+                </button>
             `;
         }
 
@@ -253,7 +251,6 @@
         function buildDeleteModalMarkup(experience) {
             if (!CAN_DELETE_EXPERIENCE) return "";
 
-            const deleteUrl = experienceUrl(DELETE_EXPERIENCE_URL_TEMPLATE, experience.id);
             return `
                 <div
                     class="lightbox delete-confirmation"
@@ -269,10 +266,11 @@
                         <h2 id="delete-experience-title-${escapeHtml(experience.id)}">Delete this experience?</h2>
                         <p>“${escapeHtml(experience.title)}” will be permanently removed from the portfolio timeline. This action cannot be undone.</p>
                         <div class="delete-confirmation-actions">
-                            <form method="post" action="${escapeHtml(deleteUrl)}">
-                                <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(CSRF_TOKEN)}">
-                                <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
-                            </form>
+                            <button
+                                class="experience-delete-confirm"
+                                type="button"
+                                data-experience-delete="${escapeHtml(experience.id)}"
+                            >Yes, delete it</button>
                             <a class="certificate-secondary-action" href="#experience-${escapeHtml(experience.id)}">Keep experience</a>
                         </div>
                     </div>
@@ -512,6 +510,105 @@
             }
         }
 
+        async function toggleExperienceStar(button) {
+            button.disabled = true;
+            try {
+                const response = await fetch(button.dataset.starUrl, {
+                    method: "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showToast(
+                        "Unable to update star",
+                        apiErrorMessage(
+                            result,
+                            `Request failed with status ${response.status}.`,
+                        ),
+                        "error",
+                        5000,
+                    );
+                    return;
+                }
+
+                showToast(
+                    result.is_starred ? "Experience starred" : "Star removed",
+                    `The star count is now ${result.star_count}.`,
+                    "success",
+                );
+                await fetchExperiences(
+                    searchInput.value.trim(),
+                    categoryInput.value,
+                );
+            } catch (error) {
+                console.error("Error updating Experience star:", error);
+                showToast(
+                    "Unable to update star",
+                    "The server could not be reached. Please try again.",
+                    "error",
+                    5000,
+                );
+            } finally {
+                if (button.isConnected) button.disabled = false;
+            }
+        }
+
+        async function deleteExperience(button) {
+            const experienceId = button.dataset.experienceDelete;
+            button.disabled = true;
+            try {
+                const response = await fetch(
+                    experienceUrl(EXPERIENCE_DETAIL_URL_TEMPLATE, experienceId),
+                    {
+                        method: "DELETE",
+                        headers: {
+                            Accept: "application/json",
+                            "X-CSRFToken": getCookie("csrftoken"),
+                        },
+                    },
+                );
+                const result = response.status === 204
+                    ? {}
+                    : await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showToast(
+                        "Unable to delete experience",
+                        apiErrorMessage(
+                            result,
+                            `Request failed with status ${response.status}.`,
+                        ),
+                        "error",
+                        5000,
+                    );
+                    return;
+                }
+
+                window.location.hash = "experience";
+                showToast(
+                    "Experience deleted",
+                    "The experience was removed from the portfolio timeline.",
+                    "success",
+                );
+                await fetchExperiences(
+                    searchInput.value.trim(),
+                    categoryInput.value,
+                );
+            } catch (error) {
+                console.error("Error deleting Experience:", error);
+                showToast(
+                    "Unable to delete experience",
+                    "The server could not be reached. Please try again.",
+                    "error",
+                    5000,
+                );
+            } finally {
+                if (button.isConnected) button.disabled = false;
+            }
+        }
+
         searchForm.addEventListener("submit", (event) => {
             event.preventDefault();
             clearExperienceSearchTimeout();
@@ -535,9 +632,17 @@
         }
         timeline.addEventListener("click", (event) => {
             const editButton = event.target.closest("[data-experience-edit]");
-            if (!editButton) return;
-            const experience = experienceRecords.get(editButton.dataset.experienceEdit);
-            if (experience) prepareExperienceForm(experience);
+            if (editButton) {
+                const experience = experienceRecords.get(editButton.dataset.experienceEdit);
+                if (experience) prepareExperienceForm(experience);
+                return;
+            }
+            const starButton = event.target.closest("[data-experience-star]");
+            if (starButton) toggleExperienceStar(starButton);
+        });
+        deleteModals.addEventListener("click", (event) => {
+            const deleteButton = event.target.closest("[data-experience-delete]");
+            if (deleteButton) deleteExperience(deleteButton);
         });
         if (experienceForm) experienceForm.addEventListener("submit", saveExperience);
 

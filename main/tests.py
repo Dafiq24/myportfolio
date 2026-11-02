@@ -730,12 +730,15 @@ class ExperienceWorkflowTest(TestCase):
         response = self.client.get(self.list_url)
         self.assertContains(response, f'href="{self.create_url}"')
         self.assertContains(response, "EXPERIENCE_DETAIL_URL_TEMPLATE")
+        self.assertContains(response, "STAR_EXPERIENCE_URL_TEMPLATE")
         self.assertContains(response, "data-experience-edit")
-        self.assertContains(response, "DELETE_EXPERIENCE_URL_TEMPLATE")
+        self.assertContains(response, "data-experience-star")
+        self.assertContains(response, "data-experience-delete")
         self.assertContains(response, 'const CAN_UPDATE_EXPERIENCE = "true"')
         self.assertContains(response, 'const CAN_DELETE_EXPERIENCE = "true"')
         self.assertContains(response, "Keep experience")
-        self.assertContains(response, "csrfmiddlewaretoken")
+        self.assertContains(response, '"X-CSRFToken": getCookie("csrftoken")')
+        self.assertIn("csrftoken", response.cookies)
 
     def test_json_returns_manual_fields_and_model_ordering(self):
         earlier = Experience.objects.create(
