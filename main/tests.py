@@ -885,7 +885,7 @@ class CertificationTest(TestCase):
         self.assertContains(response, 'id="certificate-error"')
         self.assertContains(response, 'id="certificate-empty"')
         self.assertContains(response, 'id="certificate-track"')
-        self.assertContains(response, reverse("main:get_certifications_json"))
+        self.assertContains(response, reverse("api:certification-list"))
 
     def test_empty_certifications_page(self):
         Certification.objects.all().delete()
@@ -932,11 +932,11 @@ class CertificationTest(TestCase):
         self.assertContains(response, self.certification.description)
         self.assertNotContains(response, "Delete certification")
 
-    def test_certifications_page_builds_detail_links_from_json_ids(self):
+    def test_certifications_page_builds_detail_links_from_api_ids(self):
         response = self.client.get(reverse("main:show_certifications"))
 
         self.assertContains(response, "DETAIL_URL_TEMPLATE")
-        self.assertContains(response, "detailUrlFor(item.pk)")
+        self.assertContains(response, "detailUrlFor(certification.id)")
 
     def test_unknown_certification_detail_returns_404(self):
         response = self.client.get(
