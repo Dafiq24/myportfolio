@@ -1,29 +1,29 @@
 <div
-    id="add-experience-modal"
+    id="experience-form-modal"
     class="certification-form-modal"
     popover="auto"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="add-experience-modal-title"
+    aria-labelledby="experience-form-modal-title"
 >
     <button
         class="certification-form-modal__backdrop"
         type="button"
-        popovertarget="add-experience-modal"
+        popovertarget="experience-form-modal"
         popovertargetaction="hide"
-        aria-label="Close add experience form"
+        aria-label="Close experience form"
     ></button>
     <div class="certification-form-modal__content">
         <button
             class="certification-form-modal__close"
             type="button"
-            popovertarget="add-experience-modal"
+            popovertarget="experience-form-modal"
             popovertargetaction="hide"
-            aria-label="Close add experience form"
+            aria-label="Close experience form"
         >&times;</button>
         <p class="section-kicker">Experience management</p>
-        <h2 id="add-experience-modal-title">Add a new experience</h2>
-        <form id="experience-form" method="post" class="portfolio-form">
+        <h2 id="experience-form-modal-title">Add a new experience</h2>
+        <form id="experience-form" method="post" class="portfolio-form" data-mode="create">
             {% csrf_token %}
             {% for field in form %}
                 <div class="form-group">
@@ -41,14 +41,16 @@
                 <button
                     class="form-secondary-action"
                     type="button"
-                    popovertarget="add-experience-modal"
+                    popovertarget="experience-form-modal"
                     popovertargetaction="hide"
                 >Cancel</button>
-                <button class="form-primary-action" type="submit">Add experience</button>
+                <button id="experience-form-submit" class="form-primary-action" type="submit">Add experience</button>
             </div>
-            <noscript>
-                <p><a href="{% url 'main:create_experience' %}">Open the full-page form</a></p>
-            </noscript>
+            {% if user.is_superuser %}
+                <noscript>
+                    <p><a href="{% url 'main:create_experience' %}">Open the full-page form</a></p>
+                </noscript>
+            {% endif %}
         </form>
     </div>
 </div>

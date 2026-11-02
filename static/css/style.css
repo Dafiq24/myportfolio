@@ -409,9 +409,11 @@ h3,
     background-color: var(--accent-dark);
     border: 1px solid var(--accent-dark);
     border-radius: var(--radius);
+    font-family: inherit;
     font-size: 0.85rem;
     font-weight: 700;
     text-decoration: none;
+    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 

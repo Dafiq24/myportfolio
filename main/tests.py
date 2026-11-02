@@ -729,7 +729,8 @@ class ExperienceWorkflowTest(TestCase):
         self.client.force_login(self.owner)
         response = self.client.get(self.list_url)
         self.assertContains(response, f'href="{self.create_url}"')
-        self.assertContains(response, "EDIT_EXPERIENCE_URL_TEMPLATE")
+        self.assertContains(response, "EXPERIENCE_DETAIL_URL_TEMPLATE")
+        self.assertContains(response, "data-experience-edit")
         self.assertContains(response, "DELETE_EXPERIENCE_URL_TEMPLATE")
         self.assertContains(response, 'const CAN_UPDATE_EXPERIENCE = "true"')
         self.assertContains(response, 'const CAN_DELETE_EXPERIENCE = "true"')
@@ -814,22 +815,32 @@ class ExperienceWorkflowTest(TestCase):
         )
         self.assertContains(response, "experiencesAbortController.abort()")
 
-    def test_ajax_create_modal_and_script_are_only_available_to_owner(self):
+    def test_api_form_modal_follows_create_and_update_permissions(self):
         anonymous_response = self.client.get(self.list_url)
-        self.assertNotContains(anonymous_response, 'id="add-experience-modal"')
+        self.assertNotContains(anonymous_response, 'id="experience-form-modal"')
         self.assertNotContains(anonymous_response, 'id="experience-form"')
+
+        self.client.force_login(self.regular_user)
+        regular_response = self.client.get(self.list_url)
+        self.assertNotContains(regular_response, 'id="experience-form-modal"')
+        self.assertNotContains(regular_response, 'id="experience-add-action"')
+
+        self.client.force_login(self.editor)
+        editor_response = self.client.get(self.list_url)
+        self.assertContains(editor_response, 'id="experience-form-modal"')
+        self.assertContains(editor_response, 'id="experience-form"')
+        self.assertNotContains(editor_response, 'id="experience-add-action"')
 
         self.client.force_login(self.owner)
         owner_response = self.client.get(self.list_url)
-        self.assertContains(
-            owner_response,
-            'popovertarget="add-experience-modal"',
-        )
-        self.assertContains(owner_response, 'id="add-experience-modal"')
+        self.assertContains(owner_response, 'id="experience-add-action"')
+        self.assertContains(owner_response, 'id="experience-form-modal"')
         self.assertContains(owner_response, 'id="experience-form"')
-        self.assertContains(owner_response, "CREATE_EXPERIENCE_ENDPOINT")
+        self.assertContains(owner_response, "EXPERIENCE_DETAIL_URL_TEMPLATE")
+        self.assertContains(owner_response, 'method: isEditing ? "PATCH" : "POST"')
         self.assertContains(owner_response, 'getCookie("csrftoken")')
         self.assertContains(owner_response, "new FormData(experienceForm)")
+        self.assertContains(owner_response, "JSON.stringify(experiencePayload())")
         self.assertContains(owner_response, "displayExperienceFormErrors")
         self.assertContains(owner_response, "showToast(")
         self.assertContains(owner_response, "await fetchExperiences(")
