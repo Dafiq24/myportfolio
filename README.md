@@ -715,6 +715,20 @@ Pengujian manual melalui Django shell membuktikan empat Experience lama dapat di
 
 Chapter berikutnya akan mendaftarkan endpoint daftar, detail, dan star Experience di bawah prefix `/api/v1/`. Endpoint tersebut akan memakai `SessionAuthentication`, serializer baru, query parameter pencarian Tugas 5, serta `IsPortfolioOwnerOrEditorOrReadOnly` agar pengunjung, user biasa, Editor, dan superuser memperoleh hak yang sesuai.
 
+#### (20.07 - 20.17 11/2/2026)
+
+Chapter kedua menambahkan REST API Experience pada prefix `/api/v1/` yang sama dengan API Certification dari Tutorial 07. Named route `api:experience-list` melayani `GET`, `HEAD`, dan `POST` pada `/api/v1/experiences/`. Named route `api:experience-detail` melayani `GET`, `HEAD`, `PUT`, `PATCH`, dan `DELETE` pada `/api/v1/experiences/<uuid>/`, sedangkan `api:experience-star` hanya menerima `POST` pada `/api/v1/experiences/<uuid>/star/`. Nama route dibedakan dari API Certification agar reverse URL tidak ambigu.
+
+Seluruh view berbasis fungsi memakai `@api_view` dan `SessionAuthentication`. Endpoint collection dan detail memakai `IsPortfolioOwnerOrEditorOrReadOnly`: safe methods tersedia bagi semua pengunjung, superuser dapat memakai seluruh mutation, dan anggota grup `Editor` hanya dapat memakai `PUT` atau `PATCH`. User biasa serta anonymous tidak dapat membuat, mengubah, atau menghapus Experience. Endpoint star memakai `IsAuthenticated`; identitas pemberi star selalu berasal dari `request.user`, sehingga payload tidak dapat memilih user lain.
+
+Operasi collection mengambil queryset dengan `prefetch_related("starred_by")` dan ordering stabil berdasarkan `display_order`, `-started_at`, lalu UUID. Parameter `q` mencari title atau organization menggunakan `icontains`, sedangkan `category` memfilter nilai category. Kedua parameter dapat digabungkan tanpa mengubah halaman. `POST` memvalidasi payload melalui `ExperienceSerializer` dan mengembalikan 201 setelah objek dibuat.
+
+Endpoint detail memakai `get_object_or_404` agar UUID asing menghasilkan 404. `PATCH` mengaktifkan partial update sehingga hanya field yang dikirim yang divalidasi dan diubah, sedangkan `PUT` meminta representasi writable yang lengkap. Delete menghapus target dan mengembalikan body kosong dengan status 204. Validation error dari serializer diterjemahkan DRF menjadi 400, sementara permission yang gagal menghasilkan 403. View tidak merakit dictionary response secara manual; seluruh representasi dan validasi tetap dipusatkan pada serializer.
+
+Pengujian manual memastikan collection mengembalikan empat Experience dalam kontrak DRF langsung, bukan wrapper `pk` dan `fields`. Query `q=BEM`, filter `category=internship`, serta kombinasi keduanya menghasilkan data yang sesuai. Detail UUID dapat dibuka melalui Browsable API dan menampilkan category display, status ongoing, skill list, jumlah star, serta status star tanpa identitas akun. API Certification Tutorial 07 tetap dapat dibuka setelah route Experience ditambahkan. `python manage.py check`, migration check, dan diff check tetap bersih.
+
+Verifikasi manual chapter ini berfokus pada read/search/detail. Matriks mutation keempat role, perubahan database pada request yang ditolak, validasi, star, method, status, serta CSRF session akan dibuktikan dengan `APITestCase` pada chapter pengujian. Pemisahan ini mencegah keberhasilan endpoint publik dianggap sebagai bukti authorization lengkap. Chapter berikutnya akan memindahkan read/search halaman Experience dari manual JSON Tugas 5 ke response serializer baru tanpa mengubah desain timeline.
+
 
 ### Catatan Tugas 6
 
