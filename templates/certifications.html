@@ -70,10 +70,11 @@
     {% endif %}
 
     <script>
-        const CERTIFICATIONS_ENDPOINT = "{% url 'main:get_certifications_json' %}";
-        const CREATE_CERTIFICATION_ENDPOINT = "{% url 'main:create_certification_ajax' %}";
+        const CERTIFICATIONS_ENDPOINT = "{% url 'api:certification-list' %}";
         const STATIC_URL = "{% static '' %}";
         const DETAIL_URL_TEMPLATE = "{% url 'main:show_certification_detail' '00000000-0000-0000-0000-000000000000' %}";
+        const API_DETAIL_URL_TEMPLATE = "{% url 'api:certification-detail' '00000000-0000-0000-0000-000000000000' %}";
+        const API_STAR_URL_TEMPLATE = "{% url 'api:certification-star' '00000000-0000-0000-0000-000000000000' %}";
         const SEARCH_DEBOUNCE_DELAY = 300;
 
         const loadingState = document.getElementById("certificate-loading");
@@ -130,18 +131,24 @@
             );
         }
 
+        function apiUrlFor(template, certificationId) {
+            return template.replace(
+                "00000000-0000-0000-0000-000000000000",
+                certificationId,
+            );
+        }
+
         function imageUrlFor(imagePath) {
             return `${STATIC_URL}${String(imagePath ?? "").replace(/^\/+/, "")}`;
         }
 
-        function buildCertificateCardMarkup(item, duplicate = false) {
-            const certification = item.fields;
+        function buildCertificateCardMarkup(certification, duplicate = false) {
             const starLabel = certification.is_starred ? "Starred by you" : "Not starred by you";
 
             return `
                 <a
                     class="certificate-card${certification.is_featured ? " certificate-card-featured" : ""}"
-                    href="#certificate-${escapeHtml(item.pk)}"
+                    href="#certificate-${escapeHtml(certification.id)}"
                     ${duplicate ? 'tabindex="-1"' : ""}
                 >
                     <img
@@ -161,12 +168,11 @@
             `;
         }
 
-        function buildCertificateLightboxMarkup(item) {
-            const certification = item.fields;
+        function buildCertificateLightboxMarkup(certification) {
             return `
                 <div
                     class="lightbox certificate-lightbox"
-                    id="certificate-${escapeHtml(item.pk)}"
+                    id="certificate-${escapeHtml(certification.id)}"
                     role="dialog"
                     aria-modal="true"
                     aria-label="${escapeHtml(certification.title)} certificate"
@@ -183,9 +189,32 @@
                             ${escapeHtml(certification.issuer)} &middot;
                             ${escapeHtml(certification.issued_year)}
                         </figcaption>
-                        <a class="certificate-detail-link" href="${escapeHtml(detailUrlFor(item.pk))}">
-                            View certificate details
-                        </a>
+                        <div class="certificate-detail-actions">
+                            <a class="certificate-detail-link" href="${escapeHtml(detailUrlFor(certification.id))}">
+                                View certificate details
+                            </a>
+                            {% if user.is_authenticated %}
+                                <button
+                                    class="certificate-star-action${certification.is_starred ? " is-starred" : ""}"
+                                    type="button"
+                                    data-certification-action="star"
+                                    data-certification-id="${escapeHtml(certification.id)}"
+                                >
+                                    <span aria-hidden="true">${certification.is_starred ? "★" : "☆"}</span>
+                                    ${certification.is_starred ? "Unstar" : "Star"}
+                                    <span class="star-count">${escapeHtml(certification.star_count)}</span>
+                                </button>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                <button
+                                    class="certificate-delete-action"
+                                    type="button"
+                                    data-certification-action="delete"
+                                    data-certification-id="${escapeHtml(certification.id)}"
+                                    data-certification-title="${escapeHtml(certification.title)}"
+                                >Delete certification</button>
+                            {% endif %}
+                        </div>
                     </figure>
                 </div>
             `;
@@ -269,31 +298,58 @@
             if (modal?.matches(":popover-open")) modal.hidePopover();
         }
 
+        function formatApiErrors(result, fallbackMessage) {
+            const messages = Object.entries(result).flatMap(([field, errors]) => {
+                const fieldErrors = Array.isArray(errors) ? errors : [errors];
+                return fieldErrors.map((error) => `${field}: ${error}`);
+            });
+            return messages.length > 0 ? messages.join(" ") : fallbackMessage;
+        }
+
         async function addCertification(event) {
             event.preventDefault();
             const submitButton = certificationForm.querySelector('button[type="submit"]');
             submitButton.disabled = true;
 
             try {
-                const response = await fetch(CREATE_CERTIFICATION_ENDPOINT, {
+                const formData = new FormData(certificationForm);
+                const payload = Object.fromEntries(formData.entries());
+                delete payload.csrfmiddlewaretoken;
+                payload.issued_year = Number(payload.issued_year);
+                payload.is_featured = formData.has("is_featured");
+
+                const response = await fetch(CERTIFICATIONS_ENDPOINT, {
                     method: "POST",
-                    headers: { "X-CSRFToken": getCookie("csrftoken") },
-                    body: new FormData(certificationForm),
+                    headers: {
+                        Accept: "application/json",
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    body: JSON.stringify(payload),
                 });
                 const result = await response.json().catch(() => ({}));
 
                 if (response.ok) {
                     certificationForm.reset();
                     closeCertificationModal();
-                    showToast("Success", result.message, "success");
+                    showToast(
+                        "Certification added",
+                        `“${result.title}” is now part of the portfolio.`,
+                        "success",
+                    );
                     await fetchCertifications(searchInput.value.trim());
                     return;
                 }
 
-                const messages = result.errors
-                    ? Object.values(result.errors).flat().map((error) => error.message)
-                    : [result.message || `Request failed with status ${response.status}.`];
-                showToast("Unable to add certification", messages.join(" "), "error", 5000);
+                showToast(
+                    "Unable to add certification",
+                    formatApiErrors(
+                        result,
+                        `Request failed with status ${response.status}.`,
+                    ),
+                    "error",
+                    5000,
+                );
             } catch (error) {
                 console.error("Error adding certification:", error);
                 showToast(
@@ -304,6 +360,78 @@
                 );
             } finally {
                 submitButton.disabled = false;
+            }
+        }
+
+        async function mutateCertification(button) {
+            const action = button.dataset.certificationAction;
+            const certificationId = button.dataset.certificationId;
+            const isDelete = action === "delete";
+
+            if (isDelete) {
+                const title = button.dataset.certificationTitle;
+                const confirmed = window.confirm(
+                    `Delete “${title}” permanently? This action cannot be undone.`,
+                );
+                if (!confirmed) return;
+            }
+
+            const endpoint = apiUrlFor(
+                isDelete ? API_DETAIL_URL_TEMPLATE : API_STAR_URL_TEMPLATE,
+                certificationId,
+            );
+            button.disabled = true;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: isDelete ? "DELETE" : "POST",
+                    headers: {
+                        Accept: "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                });
+                const result = response.status === 204
+                    ? {}
+                    : await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    showToast(
+                        "Unable to update certification",
+                        formatApiErrors(
+                            result,
+                            `Request failed with status ${response.status}.`,
+                        ),
+                        "error",
+                        5000,
+                    );
+                    return;
+                }
+
+                window.location.hash = "certifications";
+                if (isDelete) {
+                    showToast(
+                        "Certification deleted",
+                        "The certification was removed from the portfolio.",
+                        "success",
+                    );
+                } else {
+                    showToast(
+                        result.is_starred ? "Certification starred" : "Star removed",
+                        `The star count is now ${result.star_count}.`,
+                        "success",
+                    );
+                }
+                await fetchCertifications(searchInput.value.trim());
+            } catch (error) {
+                console.error(`Error performing certification ${action}:`, error);
+                showToast(
+                    "Unable to update certification",
+                    "The server could not be reached. Please try again.",
+                    "error",
+                    5000,
+                );
+            } finally {
+                if (button.isConnected) button.disabled = false;
             }
         }
 
@@ -324,6 +452,10 @@
         });
         retryButton.addEventListener("click", searchCertifications);
         if (certificationForm) certificationForm.addEventListener("submit", addCertification);
+        lightboxContainer.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-certification-action]");
+            if (button) mutateCertification(button);
+        });
 
         fetchCertifications(searchInput.value.trim());
     </script>
