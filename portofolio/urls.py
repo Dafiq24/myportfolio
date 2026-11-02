@@ -23,5 +23,7 @@ urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
     path("admin/", admin.site.urls),
     path("htmx-contacts/", include("contacts.urls")),
+    path("api/v1/", include("main.api_urls")),
+    path("api-auth/", include("rest_framework.urls")),
     path("", include("main.urls")),
 ]
