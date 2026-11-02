@@ -743,6 +743,20 @@ Regression assertion halaman diperbarui agar memeriksa named route DRF, sementar
 
 Create modal, halaman edit, form star, dan form delete masih memakai endpoint Tugas 5/Tugas 4 pada akhir chapter ini. Keadaan tersebut disengaja sebagai transitional architecture: read/search sudah memakai DRF, sedangkan mutation tetap memiliki fallback yang sebelumnya teruji. Chapter berikutnya akan mengubah create menjadi JSON `POST` dan menyediakan edit tanpa reload melalui `PATCH`, termasuk error 400/403, toast, CSRF, serta prefilled form untuk Editor dan superuser.
 
+#### (20.35 - 22.22 11/2/2026)
+
+Chapter keempat memindahkan create dan update Experience ke REST API tanpa menghapus full-page view lama sebagai fallback. Modal yang sebelumnya hanya menangani create diubah menjadi form reusable untuk dua mode. Superuser memperoleh tombol **Add experience** dan **Edit experience**, Editor hanya memperoleh **Edit experience**, sedangkan user biasa serta anonymous tidak menerima markup modal pengelolaan. Kondisi template meningkatkan pengalaman pengguna, tetapi permission API tetap menjadi pengaman utama ketika endpoint dipanggil langsung.
+
+Hasil GET Experience disimpan pada `Map` berdasarkan UUID. Tombol edit hanya membawa UUID melalui data attribute, lalu JavaScript mengambil record terbaru dari map untuk mengisi title, organization, period, display order, description, category, thumbnail, dan skills. Strategi ini menghindari penyalinan payload panjang ke atribut HTML serta memastikan modal memakai data yang sama dengan card. Mode create mereset form dan heading, sedangkan mode edit mengganti heading serta tombol submit menjadi **Save changes** tanpa membuat object baru.
+
+Form mengubah `FormData` menjadi object JSON, menghapus field token dari body, dan mengonversi `display_order` menjadi number. Create mengirim `POST` ke `/api/v1/experiences/`, sedangkan edit mengirim `PATCH` ke `/api/v1/experiences/<uuid>/`. Kedua request memakai `Accept: application/json`, `Content-Type: application/json`, serta header `X-CSRFToken` dari cookie. Setelah response sukses, modal ditutup, toast ditampilkan, dan `fetchExperiences` dijalankan kembali bersama filter aktif sehingga timeline berubah tanpa document reload.
+
+Error DRF berbentuk array string per field, berbeda dari struktur error AJAX lama yang berisi object dengan properti `message`. Fungsi error disesuaikan agar dapat menampilkan keduanya, menambahkan `aria-invalid` serta `aria-describedby` pada field terkait, dan merangkum error 400 atau 403 melalui toast. Title dan description berbasis tag tetap ditolak serializer; nilai valid tetap di-escape ketika card dirender. Tombol submit dinonaktifkan selama request dan dipulihkan melalui `finally` untuk mengurangi submit ganda.
+
+Pengujian browser menggunakan object sementara membuktikan superuser dapat membuat data melalui POST 201, Editor dapat membuka form prefilled dan menyimpan perubahan melalui PATCH 200, UUID tetap sama, jumlah object tidak bertambah saat edit, serta user biasa tidak memperoleh kontrol mutation. Panel Network menunjukkan JSON body, CSRF header, dan GET baru setelah mutation. Data sementara dibersihkan setelah pemeriksaan. Stylesheet memperoleh cache version `2.6` dan tombol edit berbasis button mempertahankan visual serta keyboard focus komponen sebelumnya.
+
+Regression test lama diperbarui untuk memeriksa modal reusable, visibilitas role, endpoint detail DRF, JSON serialization, dan pemilihan method POST/PATCH. Sebanyak 50 test `MainTest` serta `ExperienceWorkflowTest` lulus. System check dan migration check bersih, sedangkan diff check hanya menampilkan informasi normalisasi line ending Windows. Chapter berikutnya akan memindahkan star dan delete dari form/redirect lama ke fetch API tanpa reload, dengan konfirmasi delete dan toast yang tetap mempertahankan matriks role.
+
 
 ### Catatan Tugas 6
 
