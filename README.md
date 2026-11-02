@@ -771,6 +771,22 @@ Regression assertion diperbarui untuk memeriksa URL star DRF, tombol dinamis sta
 
 Endpoint form/redirect lama tetap dipertahankan sementara sebagai fallback dan untuk menjaga regression coverage alur sebelumnya. Frontend utama kini telah memakai DRF untuk read, search, create, edit, star, dan delete. Chapter berikutnya akan menambahkan `APITestCase` khusus untuk membuktikan matriks role, status HTTP, validasi, invariant database pada request yang ditolak, metadata star, method restriction, dan enforcement CSRF secara langsung pada seluruh endpoint Experience.
 
+#### (22.34 - 22.40 11/2/2026)
+
+Chapter keenam menambahkan `ExperienceApiTest` berbasis `APITestCase` pada `main/tests_api.py`. Data uji dibuat terisolasi melalui `setUpTestData`: dua Experience, dua user biasa, satu anggota grup `Editor`, dan satu superuser. Penggunaan fixture class mengurangi pengulangan password hashing, sementara isolasi `TestCase` tetap mengembalikan keadaan database sebelum setiap method test. Data migrasi portofolio dihapus hanya di database test agar assertion ordering dan jumlah object deterministik.
+
+Kontrak read membuktikan response memakai object serializer langsung tanpa wrapper `pk` atau `fields`, ordering mengikuti `display_order`, category display dan skill list tersedia, status ongoing benar, serta metadata star tidak mengekspos daftar akun. Query `q` diuji case-insensitive bersama filter `category`, detail publik menghasilkan 200, dan UUID yang tidak dikenal menghasilkan 404. Status star anonymous bernilai false walaupun object telah memiliki satu pemberi star.
+
+Matriks role diuji bersama invariant database. Anonymous memperoleh akses read tetapi menerima 403 untuk create, update, delete, dan star; title, jumlah object, serta relasi star tetap sama. User biasa dapat read dan toggle star/unstar, tetapi create, update, serta delete ditolak. Editor dapat melakukan PUT lengkap, PATCH parsial, dan star, tetapi tidak dapat create atau delete. Superuser dapat create dengan 201, update dan star dengan 200, lalu delete dengan 204 dan body kosong. Request yang ditolak selalu diikuti query database agar test tidak hanya memeriksa angka status.
+
+Validasi membuat title atau description yang hanya berisi tag menghasilkan 400 tanpa menambah maupun mengubah object. Field metadata `star_count` dan `is_starred` yang dipalsukan pada payload diabaikan karena read-only, sedangkan tag pada nilai valid dibersihkan serializer. Endpoint star yang dipanggil dengan UUID asing menghasilkan 404 dan GET pada endpoint POST-only menghasilkan 405.
+
+Pengujian method sempat mengharapkan 405 ketika user biasa mengirim PUT ke collection, tetapi hasil aktual adalah 403. Hal ini terjadi karena permission DRF menolak user tersebut sebelum method restriction dapat dibuktikan. Assertion dikoreksi secara manual: user biasa memang diharapkan menerima 403, sedangkan superuser yang lolos permission menerima 405 untuk PUT pada collection. Koreksi ini dipertahankan sebagai contoh bahwa dugaan AI terhadap urutan evaluasi framework tetap harus diverifikasi dengan hasil test nyata.
+
+CSRF diuji menggunakan `APIClient(enforce_csrf_checks=True)` dan `.login()`, bukan `force_authenticate`. Create superuser dan star user biasa tanpa token menghasilkan 403 serta tidak mengubah database. Client kemudian membuka halaman Experience yang memakai `ensure_csrf_cookie`, mengambil nilai `csrftoken`, dan mengirimkannya melalui `HTTP_X_CSRFTOKEN`; request yang sama berhasil dengan 201 atau 200. Dengan demikian, test membuktikan autentikasi session dan perlindungan CSRF sebagai dua mekanisme yang berbeda.
+
+Sepuluh test Experience API lulus dalam 7,853 detik. Seluruh 22 test pada `main.tests_api`, termasuk 12 test Certification Tutorial 07, lulus dalam 35,816 detik. System check dan migration check bersih; peringatan direktori `staticfiles` serta normalisasi LF ke CRLF tidak menggagalkan test. Chapter berikutnya akan menjalankan seluruh test aplikasi, mengaudit Browsable API dan PWS untuk keempat role, melengkapi setup serta matriks endpoint, menyusun AI disclosure dan log prompting, lalu menjawab pertanyaan reflektif berdasarkan implementasi final.
+
 
 ### Catatan Tugas 6
 
