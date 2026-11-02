@@ -35,6 +35,11 @@ Kelas : PBP E
   - [Catatan Tugas 5](#catatan-tugas-5)
   - [Transparansi Penggunaan AI Tugas 5](#transparansi-penggunaan-ai-tugas-5)
   - [Tugas 5](#tugas-5)
+- [Tugas Individu 6](#tugas-individu-6)
+  - [Dokumentasi Tugas 6](#dokumentasi-tugas-6)
+  - [Catatan Tugas 6](#catatan-tugas-6)
+  - [Transparansi Penggunaan AI Tugas 6](#transparansi-penggunaan-ai-tugas-6)
+  - [Tugas 6](#tugas-6)
 
 ## Tugas Individu 1
 
@@ -787,25 +792,118 @@ CSRF diuji menggunakan `APIClient(enforce_csrf_checks=True)` dan `.login()`, buk
 
 Sepuluh test Experience API lulus dalam 7,853 detik. Seluruh 22 test pada `main.tests_api`, termasuk 12 test Certification Tutorial 07, lulus dalam 35,816 detik. System check dan migration check bersih; peringatan direktori `staticfiles` serta normalisasi LF ke CRLF tidak menggagalkan test. Chapter berikutnya akan menjalankan seluruh test aplikasi, mengaudit Browsable API dan PWS untuk keempat role, melengkapi setup serta matriks endpoint, menyusun AI disclosure dan log prompting, lalu menjawab pertanyaan reflektif berdasarkan implementasi final.
 
+#### (22.41 - 22.51 11/2/2026)
+
+Chapter final menjalankan seluruh test proyek, bukan hanya test API atau workflow Experience. Django menemukan 126 test dan semuanya lulus dalam 442,637 detik. `python manage.py check` tidak menemukan masalah, `python manage.py makemigrations --check` menyatakan tidak ada perubahan model, `python -m pip check` tidak menemukan dependency rusak, dan `git diff --check` bersih. Peringatan lokal mengenai direktori `staticfiles` dicatat sebagai konfigurasi output deployment yang belum dibuat oleh `collectstatic`, bukan kegagalan test atau missing source static asset.
+
+Audit browser lokal dan PWS dilakukan pada anonymous, user biasa, Editor, dan superuser. Collection Experience serta Certification dapat dibuka melalui Browsable API. Search dan category Experience mengirim GET ke `/api/v1/experiences/`, superuser dapat membuat object sementara melalui POST 201, Editor memperbarui UUID yang sama melalui PATCH 200, user biasa melakukan star/unstar melalui POST 200, dan superuser menghapus object sementara melalui DELETE 204. Seluruh aksi memakai CSRF header, menampilkan toast, memperbarui data tanpa document reload, dan tidak menghasilkan error 500 atau error JavaScript.
+
+Kontrol antarmuka juga sesuai matriks role: anonymous hanya read dan diarahkan login ketika memilih star; user biasa memperoleh read serta star; Editor memperoleh read, star, dan edit tanpa create/delete; superuser memperoleh seluruh operasi. Cancel pada modal delete tidak mengirim request. Setelah audit, data sementara dihapus dan data portofolio asli tetap tersedia setelah refresh. Halaman Certification dari Tutorial 07 tetap berjalan sehingga penerapan Tugas 6 tidak mengganti atau merusak contoh tutorial.
+
+Dokumentasi akhir melengkapi panduan fresh clone, konfigurasi grup Editor, tabel endpoint serta permission, kontrak status, hasil pengujian, AI disclosure, log prompting, keterbatasan, dan jawaban reflektif. Dengan selesainya chapter ini, frontend utama Experience menggunakan DRF untuk read, combined search, create, PUT/PATCH edit, star, dan delete; endpoint lama dipertahankan sebagai fallback kompatibilitas, bukan jalur utama JavaScript.
+
 
 ### Catatan Tugas 6
 
-Tutorial 07 telah diselesaikan terlebih dahulu menggunakan `Certification` dan commit terakhir tutorial tersedia pada `fde2f89`. Tugas 6 melanjutkan aplikasi yang sama tanpa membuat model pengganti atau menghapus endpoint lama sebelum seluruh consumer dipindahkan. Route, langkah setup, matriks endpoint, hasil regression test, serta audit PWS akan dilengkapi berdasarkan implementasi final.
+Tutorial 07 diselesaikan terlebih dahulu menggunakan `Certification` dan commit terakhir tutorial tersedia pada `fde2f89`. Tugas 6 menerapkan pola yang sama pada `Experience` tanpa membuat model pengganti. Deployment dapat diakses melalui `https://sultan-noor-myportofolio.pws.cs.ui.ac.id/`, halaman Experience berada di `/experience/`, dan API versi pertama berada di `/api/v1/`.
+
+#### Menjalankan proyek dari fresh clone
+
+```powershell
+git clone https://github.com/Dafiq24/myportfolio.git
+cd myportfolio
+py -3.11 -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+Konfigurasi lokal memakai SQLite dan tidak memerlukan environment variable produksi. `createsuperuser` diperlukan bila ingin menguji seluruh mutation. Untuk menguji Editor, buka `/admin/`, buat grup bernama persis `Editor`, lalu masukkan user yang dipilih ke grup tersebut. User biasa cukup dibuat melalui halaman register. Jangan memasukkan `SECRET_KEY`, password database, cookie, maupun kredensial akun ke repository.
+
+Pemeriksaan lengkap dapat dijalankan dengan:
+
+```powershell
+python manage.py test
+python manage.py check
+python manage.py makemigrations --check
+python -m pip check
+```
+
+#### Endpoint dan permission
+
+| Endpoint | Method | Anonymous | User | Editor | Superuser |
+| --- | --- | --- | --- | --- | --- |
+| `/api/v1/experiences/` | GET, HEAD | Ya | Ya | Ya | Ya |
+| `/api/v1/experiences/` | POST | Tidak | Tidak | Tidak | Ya |
+| `/api/v1/experiences/<uuid>/` | GET, HEAD | Ya | Ya | Ya | Ya |
+| `/api/v1/experiences/<uuid>/` | PUT, PATCH | Tidak | Tidak | Ya | Ya |
+| `/api/v1/experiences/<uuid>/` | DELETE | Tidak | Tidak | Tidak | Ya |
+| `/api/v1/experiences/<uuid>/star/` | POST | Tidak | Ya | Ya | Ya |
+| `/api/v1/certifications/` | GET, HEAD | Ya | Ya | Ya | Ya |
+| `/api/v1/certifications/` | POST | Tidak | Tidak | Tidak | Ya |
+| `/api/v1/certifications/<uuid>/` | GET, HEAD | Ya | Ya | Ya | Ya |
+| `/api/v1/certifications/<uuid>/` | PUT, PATCH, DELETE | Tidak | Tidak | Tidak | Ya |
+| `/api/v1/certifications/<uuid>/star/` | POST | Tidak | Ya | Ya | Ya |
+
+Collection Experience menerima query `q` untuk pencarian case-insensitive pada title atau organization serta `category` untuk filter category; keduanya dapat digabungkan. Response memakai representasi serializer langsung. Create yang valid menghasilkan 201, read/update/star berhasil menghasilkan 200, delete berhasil menghasilkan 204 tanpa body, payload invalid menghasilkan 400, akses terlarang menghasilkan 403, UUID asing menghasilkan 404, dan method yang tidak didukung menghasilkan 405.
+
+Mutation menggunakan `SessionAuthentication`, sehingga browser harus login dan mengirim header `X-CSRFToken` yang cocok dengan cookie `csrftoken`. Menyembunyikan tombol berdasarkan role hanya menjaga UX; permission class pada server tetap menentukan authorization. Serializer Experience tidak mengirim daftar atau identitas pemberi star, dan field UUID, timestamp, derived values, serta metadata star bersifat read-only.
+
+#### Validasi dan batasan
+
+Serializer membersihkan tag pada field teks dengan `strip_tags` dan menolak title atau description yang menjadi kosong. Frontend tetap memakai `escapeHtml` atau `textContent` sebelum menampilkan data AJAX karena pembersihan input tidak menggantikan output encoding. Queryset memakai `prefetch_related("starred_by")` untuk metadata star dan ordering eksplisit agar response stabil.
+
+Implementasi ini belum menyediakan token authentication untuk mobile/client pihak ketiga, pagination, throttling, rate limiting, schema OpenAPI, atau end-to-end browser automation. `SessionAuthentication` sesuai kebutuhan web saat ini, tetapi menggunakan session server-side sehingga bukan contoh REST stateless yang sepenuhnya murni. Endpoint form/redirect lama masih dipertahankan sebagai fallback dan dapat didepresiasi setelah seluruh consumer serta kebutuhan kompatibilitas ditinjau. Peringatan lokal `No directory at: staticfiles` hilang setelah output `collectstatic` dibuat pada proses deployment; source static tetap tersedia di `static/`.
 
 
 ### Transparansi Penggunaan AI Tugas 6
 
-AI disclosure, strategi prompting, log prompt per chapter, keterbatasan AI, dan koreksi manual akan dirangkum setelah implementasi serta audit akhir selesai. Catatan sementara mempertahankan urutan keputusan: pemetaan checklist resmi, pemisahan `Certification` dan `Experience`, serializer eksplisit, minimisasi data user, validasi `strip_tags`, serta verifikasi melalui shell tanpa menyimpan data uji.
+Codex digunakan sebagai pendamping untuk membaca ketentuan Tugas 6, menjelaskan konsep DRF, memecah implementasi menjadi chapter, mengusulkan serializer, permission, view, route, frontend fetch, test, dokumentasi, dan perintah Git. AI tidak menghasilkan seluruh tugas dalam satu prompt. Setiap chapter memiliki acceptance criterion, diuji oleh saya melalui terminal atau browser, dicatat di README, lalu di-commit dan di-push sebelum pekerjaan berikutnya dimulai.
+
+Strategi prompting mengikuti pola **konteks, tujuan, batasan, keluaran, dan verifikasi**. Konteks menyebut Tutorial 07 memakai Certification sedangkan Tugas 6 wajib memakai Experience. Tujuan dibatasi per chapter, misalnya serializer saja, endpoint saja, atau migrasi read path saja. Batasan mempertahankan desain, data portofolio, endpoint tutorial, matriks role, CSRF, escaping, dan fallback lama. Keluaran yang diminta meliputi kode, penjelasan konsep, test, dokumentasi, serta langkah commit/push. Verifikasi selalu membedakan automated test dari pemeriksaan Network, Console, role, dan PWS.
+
+Log berikut merangkum prompt dan tindak lanjut yang benar-benar dipakai tanpa menyalin password, cookie, token, atau data sensitif:
+
+| Tahap | Prompt atau tindak lanjut utama | Kontribusi AI | Verifikasi dan keputusan manual |
+| --- | --- | --- | --- |
+| Perencanaan | “Lanjut Tutorial 7 dan Tugas 6 secara bertahap; jelaskan lengkap dan terstruktur seperti biasa.” | Memisahkan contoh Tutorial 07 pada Certification dari implementasi Tugas 6 pada Experience dan menyusun urutan chapter. | Saya mempertahankan pola commit/push per chapter dan menunda jawaban reflektif sampai final. |
+| Serializer | “Terapkan serializer DRF pada Experience tanpa mengekspos data user.” | Menyusun field eksplisit, computed read-only fields, context request, dan validasi `strip_tags`. | Saya menjalankan shell untuk melihat representasi, payload valid, serta error HTML-only tanpa menyimpan candidate. |
+| Endpoint dan role | “Tambahkan list, detail, star, search, SessionAuthentication, dan role anonymous/user/Editor/owner.” | Menambahkan function-based API views, route v1, status response, dan permission reusable. | Saya memeriksa Browsable API serta memastikan Tutorial 07 tetap tersedia. |
+| Migrasi frontend | “Pindahkan Experience ke kontrak DRF secara bertahap tanpa merusak AJAX lama.” | Mengubah read/search lebih dahulu, lalu modal POST/PATCH, kemudian star/delete fetch dengan CSRF dan toast. | Saya menguji Network, UUID, jumlah object, cancel delete, refresh tanpa reload, dan empat role menggunakan data sementara. |
+| CSRF | “User biasa dapat star tetapi tidak memiliki form modal; pastikan cookie CSRF tetap tersedia.” | Menambahkan `ensure_csrf_cookie` dan header `X-CSRFToken` pada mutation fetch. | Saya memastikan star user biasa berhasil di browser dan request tanpa token ditolak dalam test. |
+| API test | “Buktikan role matrix, database invariant, status, validation, method, star, dan CSRF dengan APITestCase.” | Menambahkan sepuluh test Experience dan memakai `APIClient(enforce_csrf_checks=True)` dengan `.login()`. | Satu dugaan AI salah: PUT collection oleh user biasa diperkirakan 405, tetapi hasilnya 403 karena permission diperiksa lebih dahulu. Saya menerima hasil framework dan test dikoreksi agar 405 diuji memakai superuser. |
+| Finalisasi | “Audit seluruh aplikasi dan PWS, lalu lengkapi README, disclosure, log prompt, keterbatasan, dan refleksi.” | Menyusun checklist otomatis serta manual dan merangkum bukti final. | Saya menjalankan 126 test, dependency check, empat role di lokal/PWS, membersihkan data audit, dan menyetujui hasil akhir. |
+
+Kontribusi AI ditinjau secara kritis. Proses Codex tidak dapat menjalankan `.venv` karena interpreter virtual environment menunjuk alias Python Windows Store yang tidak dapat diakses dari konteks tool. Karena itu, AI tidak mengklaim telah menjalankan test tersebut; saya menjalankannya sendiri dari terminal `.venv` dan memberikan output sebagai bukti. Test JavaScript memeriksa wiring template, bukan mengeksekusi DOM seperti browser sungguhan, sehingga no-reload behavior, toast, CSRF header, dan visibilitas role tetap diperiksa secara manual melalui browser dan Network panel.
+
+AI juga tidak dianggap sebagai sumber kebenaran untuk semantik framework. Perbedaan 403 dan 405 baru terlihat ketika test dijalankan. `strip_tags` yang disarankan AI bukan sanitizer HTML universal dan tetap dipasangkan dengan output escaping. Permission di template bukan pengaman utama dan tetap dipasangkan dengan server permission. Keputusan akhir mengenai model yang dipakai, matriks role, pemeliharaan fallback, data sementara, waktu commit, push, serta kelayakan deployment tetap dilakukan oleh saya.
 
 
 ### Tugas 6
 
-Jawaban reflektif akan dilengkapi pada chapter final setelah seluruh implementasi, pengujian, dan audit PWS selesai. Pertanyaan resmi tetap dicantumkan sejak awal agar tidak terlewat.
-
 1. **Jelaskan apa yang dimaksud dengan REST dan mengapa mengembalikan JSON saja belum cukup untuk menyebut sebuah API sebagai RESTful! Jelaskan pula perbedaan PUT dan PATCH beserta contoh kapan masing-masing sebaiknya digunakan!**
+
+   REST adalah gaya arsitektur untuk komunikasi berbasis resource. Resource memiliki URI, direpresentasikan dalam format tertentu, diakses melalui uniform interface seperti method HTTP, memakai status HTTP yang bermakna, dan idealnya setiap request membawa konteks yang diperlukan tanpa bergantung pada urutan request sebelumnya. JSON hanya format representasi data. Endpoint yang selalu memakai POST, tidak memiliki resource URI yang jelas, mengabaikan status HTTP, atau mencampur semua aksi dalam satu URL tetap belum RESTful walaupun responsnya JSON.
+
+   PUT digunakan untuk mengganti representasi writable resource secara lengkap dan bersifat idempotent: request yang sama dapat diulang dengan hasil akhir sama. Contohnya, Editor mengirim seluruh title, organization, period, display order, description, category, thumbnail, dan skills untuk mengganti Experience. PATCH mengubah sebagian field saja. Contohnya, modal edit hanya mengirim description baru tanpa harus mengirim ulang category atau organization. Pada proyek ini endpoint detail menerima keduanya; serializer memakai `partial=False` untuk PUT dan `partial=True` untuk PATCH. Session authentication yang dipakai membuat implementasi praktis ini REST-oriented, walaupun session server-side berarti constraint stateless murni tidak dipenuhi sepenuhnya.
 
 2. **Jelaskan peran serializer pada Django REST Framework! Apa keuntungannya dibandingkan merakit dictionary secara manual dengan `JsonResponse` seperti pada Tutorial 05?**
 
+   Serializer menerjemahkan object model menjadi tipe data yang dapat dirender sebagai JSON dan menjalankan arah sebaliknya: memeriksa payload, mengubahnya menjadi `validated_data`, lalu membuat atau memperbarui model. `ExperienceSerializer` memusatkan daftar field, read-only fields, validasi, pembersihan tag, category display, ongoing status, skill list, star count, dan status star user berdasarkan request context.
+
+   Dibanding dictionary manual, serializer mengurangi duplikasi antara list, detail, create, dan update; menghasilkan error per field yang konsisten; menangani konversi UUID, URL, integer, choice, dan nilai nullable; serta mencegah klien menimpa metadata read-only. `JsonResponse` manual pada Tutorial 05 cukup untuk read endpoint sederhana, tetapi developer harus merakit bentuk data, validasi, update, dan pesan error sendiri di setiap view. Serializer tidak menggantikan permission, authentication, CSRF, atau output escaping; tanggung jawab tersebut tetap berada pada lapisan masing-masing.
+
 3. **Jelaskan perbedaan autentikasi dan otorisasi pada Django REST Framework! Mengapa hak akses harus diperiksa dengan permission class di server, bukan hanya dengan menyembunyikan tombol di template?**
 
+   Autentikasi menjawab “siapa yang mengirim request”. `SessionAuthentication` membaca session cookie Django dan mengisi `request.user`. Otorisasi menjawab “apa yang boleh dilakukan user tersebut”. `IsAuthenticated` membatasi star pada user login, sedangkan `IsPortfolioOwnerOrEditorOrReadOnly` memberikan safe methods kepada semua orang, PUT/PATCH kepada Editor, dan seluruh mutation kepada superuser.
+
+   Tombol yang disembunyikan hanya mengubah tampilan. User tetap dapat menulis request sendiri melalui DevTools, curl, script, atau client lain. Karena itu, server harus memeriksa permission pada setiap request sebelum menyentuh database. Proyek tetap menyembunyikan kontrol yang tidak relevan agar UX jelas, tetapi APITestCase membuktikan request langsung dari role yang salah menghasilkan 403 dan title, jumlah object, relasi star, serta keberadaan target tidak berubah.
+
 4. **Jelaskan mengapa permintaan yang mengubah data tetap memerlukan token CSRF ketika API memakai `SessionAuthentication`! Mengapa test yang memakai `force_authenticate` tidak cukup untuk membuktikan bahwa perlindungan CSRF berjalan?**
+
+   Browser mengirim session cookie secara otomatis pada request yang sesuai. Tanpa CSRF protection, situs lain dapat mencoba membuat browser user yang sedang login mengirim POST, PATCH, atau DELETE ke aplikasi. Token CSRF adalah nilai tambahan yang harus diketahui halaman sah dan dikirim melalui form atau header `X-CSRFToken`; cookie session saja tidak cukup. Safe methods seperti GET tidak mengubah data, sedangkan mutation Experience tetap memerlukan token karena API memakai identitas dari session browser.
+
+   `force_authenticate` menempelkan user langsung ke request test dan melewati alur autentikasi session, sehingga berguna untuk mengisolasi permission tetapi tidak membuktikan pemeriksaan CSRF. Test proyek memakai `APIClient(enforce_csrf_checks=True)` dan `.login()`: mutation tanpa token menghasilkan 403 dan database tetap, lalu client membuka halaman yang memasang cookie CSRF dan mengulang request dengan `HTTP_X_CSRFTOKEN`. Create berhasil dengan 201 dan star berhasil dengan 200 hanya setelah token yang benar dikirim.
