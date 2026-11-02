@@ -695,3 +695,45 @@ Secara teknis, sebagian test JavaScript memeriksa keberadaan wiring pada HTML, b
    XSS terjadi ketika data yang tidak dipercaya diperlakukan sebagai HTML atau JavaScript aktif oleh browser. Payload dapat menjalankan script, memanipulasi halaman, atau melakukan aksi menggunakan konteks user. Template Django melakukan auto-escaping pada variabel `{{ value }}` secara default, sehingga karakter khusus biasanya ditampilkan sebagai teks. Data JSON dari AJAX tidak otomatis memperoleh perlindungan template tersebut ketika JavaScript menyisipkannya sendiri ke DOM. Risiko terutama muncul saat nilai mentah dimasukkan melalui `innerHTML`; tag seperti `<img onerror=...>` dapat ditafsirkan sebagai elemen aktif. AJAX tidak secara inheren tidak aman, tetapi developer mengambil alih tanggung jawab output encoding yang sebelumnya ditangani template.
 
    Pada proyek ini, seluruh nilai Experience yang membentuk markup melewati `escapeHtml`, sementara summary dan pesan memakai `textContent`. Di sisi server, method `clean_<field>` menjalankan `strip_tags`, dan title serta description yang berubah menjadi kosong ditolak. Payload `<img src="x" onerror="alert('XSS!')">` diuji secara eksplisit dan tidak tersimpan. Kedua lapisan tetap diperlukan karena `strip_tags` bukan sanitizer sempurna dan JSON bukan mekanisme keamanan. Perlindungan ini juga tidak menggantikan validasi, CSRF, authorization, Content Security Policy, maupun pengelolaan session yang aman.
+
+
+## Tugas Individu 6
+
+### Dokumentasi Tugas 6
+
+#### (19.23 - 20.06 11/2/2026)
+
+Tugas Individu 6 menerapkan pola Django REST Framework dari Tutorial 07 pada `Experience`, yaitu bagian portofolio yang dikembangkan secara mandiri sejak Tugas 3 sampai Tugas 5. Tutorial menggunakan `Certification`, sedangkan tugas menggunakan model, data, filter, interaksi AJAX, fitur star, dan matriks authorization Experience yang sudah tersedia. Pengerjaan dibagi menjadi chapter serializer, endpoint dan permission, integrasi read/search, mutation frontend, pengujian API, serta finalisasi dokumentasi dan deployment. Setiap chapter diuji, dicatat, di-commit, dan di-push sebelum chapter berikutnya dimulai.
+
+Chapter pertama menambahkan `ExperienceSerializer` berbasis `ModelSerializer` pada `main/serializers.py`. Daftar field ditulis eksplisit dan mencakup UUID, data utama Experience, label category, timestamp, status ongoing, daftar skills, jumlah star, serta status star pengguna yang sedang login. Tidak ada object user, email, password hash, session, maupun identifier akun yang disertakan. `category_display`, `is_ongoing`, `skill_list`, `star_count`, dan `is_starred` disediakan sebagai nilai turunan untuk kebutuhan frontend.
+
+Field `id`, `started_at`, `ended_at`, dan seluruh nilai hasil perhitungan ditetapkan read-only. Klien dapat membacanya, tetapi nilai tersebut tidak digunakan untuk menimpa identitas objek, timestamp, status ongoing, pemecahan skills, atau metadata star ketika melakukan mutation. Akun pemberi star selalu akan ditentukan server melalui `request.user`, bukan payload klien.
+
+Validasi serializer mengikuti aturan `ExperienceForm` dari Tugas 5. Method `validate_title`, `validate_organization`, `validate_period`, `validate_description`, dan `validate_skills` menggunakan `strip_tags` serta `strip`. Title dan description yang berubah menjadi kosong setelah pembersihan ditolak dengan error per field. Lapisan ini membatasi nilai yang disimpan, tetapi tidak dianggap sebagai pengganti escaping pada browser; nilai yang dimasukkan ke markup dinamis tetap harus melewati `escapeHtml` pada chapter frontend.
+
+Pengujian manual melalui Django shell membuktikan empat Experience lama dapat diserialisasi bersama category display, status ongoing, skill list, dan metadata star. Candidate dengan tag HTML dinyatakan valid setelah tag dibersihkan, sedangkan title `<b></b>` dan description `<i></i>` ditolak. Pengujian tidak memanggil `.save()`, sehingga tidak menambah objek sementara. `python manage.py check` tidak menemukan masalah, `python manage.py makemigrations --check` menyatakan tidak ada perubahan schema, dan `git diff --check` bersih.
+
+Chapter berikutnya akan mendaftarkan endpoint daftar, detail, dan star Experience di bawah prefix `/api/v1/`. Endpoint tersebut akan memakai `SessionAuthentication`, serializer baru, query parameter pencarian Tugas 5, serta `IsPortfolioOwnerOrEditorOrReadOnly` agar pengunjung, user biasa, Editor, dan superuser memperoleh hak yang sesuai.
+
+
+### Catatan Tugas 6
+
+Tutorial 07 telah diselesaikan terlebih dahulu menggunakan `Certification` dan commit terakhir tutorial tersedia pada `fde2f89`. Tugas 6 melanjutkan aplikasi yang sama tanpa membuat model pengganti atau menghapus endpoint lama sebelum seluruh consumer dipindahkan. Route, langkah setup, matriks endpoint, hasil regression test, serta audit PWS akan dilengkapi berdasarkan implementasi final.
+
+
+### Transparansi Penggunaan AI Tugas 6
+
+AI disclosure, strategi prompting, log prompt per chapter, keterbatasan AI, dan koreksi manual akan dirangkum setelah implementasi serta audit akhir selesai. Catatan sementara mempertahankan urutan keputusan: pemetaan checklist resmi, pemisahan `Certification` dan `Experience`, serializer eksplisit, minimisasi data user, validasi `strip_tags`, serta verifikasi melalui shell tanpa menyimpan data uji.
+
+
+### Tugas 6
+
+Jawaban reflektif akan dilengkapi pada chapter final setelah seluruh implementasi, pengujian, dan audit PWS selesai. Pertanyaan resmi tetap dicantumkan sejak awal agar tidak terlewat.
+
+1. **Jelaskan apa yang dimaksud dengan REST dan mengapa mengembalikan JSON saja belum cukup untuk menyebut sebuah API sebagai RESTful! Jelaskan pula perbedaan PUT dan PATCH beserta contoh kapan masing-masing sebaiknya digunakan!**
+
+2. **Jelaskan peran serializer pada Django REST Framework! Apa keuntungannya dibandingkan merakit dictionary secara manual dengan `JsonResponse` seperti pada Tutorial 05?**
+
+3. **Jelaskan perbedaan autentikasi dan otorisasi pada Django REST Framework! Mengapa hak akses harus diperiksa dengan permission class di server, bukan hanya dengan menyembunyikan tombol di template?**
+
+4. **Jelaskan mengapa permintaan yang mengubah data tetap memerlukan token CSRF ketika API memakai `SessionAuthentication`! Mengapa test yang memakai `force_authenticate` tidak cukup untuk membuktikan bahwa perlindungan CSRF berjalan?**
