@@ -757,6 +757,20 @@ Pengujian browser menggunakan object sementara membuktikan superuser dapat membu
 
 Regression test lama diperbarui untuk memeriksa modal reusable, visibilitas role, endpoint detail DRF, JSON serialization, dan pemilihan method POST/PATCH. Sebanyak 50 test `MainTest` serta `ExperienceWorkflowTest` lulus. System check dan migration check bersih, sedangkan diff check hanya menampilkan informasi normalisasi line ending Windows. Chapter berikutnya akan memindahkan star dan delete dari form/redirect lama ke fetch API tanpa reload, dengan konfirmasi delete dan toast yang tetap mempertahankan matriks role.
 
+#### (22.23 - 22.33 11/2/2026)
+
+Chapter kelima memindahkan interaksi star dan delete Experience dari submit form serta redirect lama ke endpoint DRF. Tombol star pengguna terautentikasi kini mengirim `POST` ke `/api/v1/experiences/<uuid>/star/`, sedangkan konfirmasi delete milik superuser mengirim `DELETE` ke `/api/v1/experiences/<uuid>/`. Pengunjung yang belum login tetap diarahkan ke halaman login dengan parameter `next` menuju halaman Experience, sehingga URL API tidak dijadikan tujuan navigasi browser setelah autentikasi.
+
+Request mutation mengirim `Accept: application/json` dan header `X-CSRFToken` yang dibaca dari cookie `csrftoken`. View halaman Experience diberi `ensure_csrf_cookie` agar cookie tersedia juga bagi user biasa yang dapat melakukan star tetapi tidak menerima markup modal create/edit beserta `{% csrf_token %}`. Perlindungan ini melengkapi `SessionAuthentication`: browser membawa session cookie untuk autentikasi, sedangkan token CSRF membuktikan request perubahan berasal dari halaman yang sah.
+
+Respons star berstatus 200 membawa `is_starred` dan `star_count`; frontend menampilkan toast sesuai keadaan terbaru lalu mengambil ulang collection menggunakan query serta category aktif. Delete memperlakukan status 204 sebagai keberhasilan tanpa mencoba memaksa body kosong menjadi JSON. Setelah penghapusan, hash modal dikembalikan ke bagian Experience, toast sukses ditampilkan, dan timeline dimuat ulang tanpa document reload. Tombol dikunci selama request dan dipulihkan pada `finally` untuk mengurangi request ganda.
+
+Modal konfirmasi tetap dibentuk hanya ketika `CAN_DELETE_EXPERIENCE` bernilai benar. Tombol **Keep experience** menutup alur tanpa request, sementara **Yes, delete it** memanggil API. Pembatasan visual ini bukan authorization utama: API tetap menolak delete dari anonymous, user biasa, dan Editor melalui permission server. Kontrol star tersedia bagi seluruh user terautentikasi, dan identitas pemberi star tetap berasal dari `request.user`, bukan body klien.
+
+Regression assertion diperbarui untuk memeriksa URL star DRF, tombol dinamis star/delete, header CSRF, cookie CSRF, serta capability flag role. Sebanyak 50 test pada `MainTest` dan `ExperienceWorkflowTest` lulus dalam 315,478 detik. `python manage.py check` tidak menemukan masalah, migration check menyatakan tidak ada perubahan model, dan diff check bersih selain informasi normalisasi LF ke CRLF pada Windows. Pemeriksaan browser mengonfirmasi star/unstar, cancel delete, delete data percobaan, toast, refresh data, serta visibilitas kontrol berlangsung sesuai role tanpa reload halaman.
+
+Endpoint form/redirect lama tetap dipertahankan sementara sebagai fallback dan untuk menjaga regression coverage alur sebelumnya. Frontend utama kini telah memakai DRF untuk read, search, create, edit, star, dan delete. Chapter berikutnya akan menambahkan `APITestCase` khusus untuk membuktikan matriks role, status HTTP, validasi, invariant database pada request yang ditolak, metadata star, method restriction, dan enforcement CSRF secara langsung pada seluruh endpoint Experience.
+
 
 ### Catatan Tugas 6
 
