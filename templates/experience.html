@@ -111,7 +111,7 @@
     {% endif %}
 
     <script>
-        const EXPERIENCES_ENDPOINT = "{% url 'main:get_experiences_json' %}";
+        const EXPERIENCES_ENDPOINT = "{% url 'api:experience-list' %}";
         const CREATE_EXPERIENCE_ENDPOINT = "{% url 'main:create_experience_ajax' %}";
         const EDIT_EXPERIENCE_URL_TEMPLATE = "{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}";
         const DELETE_EXPERIENCE_URL_TEMPLATE = "{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}";
@@ -177,9 +177,8 @@
             timeline.classList.toggle("hide", state !== "ready");
         }
 
-        function buildStarMarkup(item) {
-            const experience = item.fields;
-            const starUrl = experienceUrl(STAR_EXPERIENCE_URL_TEMPLATE, item.pk);
+        function buildStarMarkup(experience) {
+            const starUrl = experienceUrl(STAR_EXPERIENCE_URL_TEMPLATE, experience.id);
 
             if (!IS_AUTHENTICATED) {
                 const nextUrl = encodeURIComponent(starUrl);
@@ -208,12 +207,12 @@
             `;
         }
 
-        function buildActionsMarkup(item) {
+        function buildActionsMarkup(experience) {
             if (!CAN_UPDATE_EXPERIENCE) return "";
 
-            const editUrl = experienceUrl(EDIT_EXPERIENCE_URL_TEMPLATE, item.pk);
+            const editUrl = experienceUrl(EDIT_EXPERIENCE_URL_TEMPLATE, experience.id);
             const deleteAction = CAN_DELETE_EXPERIENCE
-                ? `<a class="experience-delete-action" href="#delete-experience-${escapeHtml(item.pk)}">Delete experience</a>`
+                ? `<a class="experience-delete-action" href="#delete-experience-${escapeHtml(experience.id)}">Delete experience</a>`
                 : "";
 
             return `
@@ -224,51 +223,49 @@
             `;
         }
 
-        function buildExperienceMarkup(item) {
-            const experience = item.fields;
+        function buildExperienceMarkup(experience) {
             const skills = experience.skill_list
                 .map((skill) => `<li>${escapeHtml(skill)}</li>`)
                 .join("");
 
             return `
-                <article class="experience-item" id="experience-${escapeHtml(item.pk)}">
+                <article class="experience-item" id="experience-${escapeHtml(experience.id)}">
                     <div class="timeline-marker" aria-hidden="true"></div>
                     <p class="experience-period">${escapeHtml(experience.period)}</p>
                     <h3>${escapeHtml(experience.title)}</h3>
                     <p class="experience-organization">${escapeHtml(experience.organization)}</p>
                     <p class="experience-description">${escapeHtml(experience.description)}</p>
                     <ul class="experience-tags" aria-label="Related skills">${skills}</ul>
-                    ${buildStarMarkup(item)}
-                    ${buildActionsMarkup(item)}
+                    ${buildStarMarkup(experience)}
+                    ${buildActionsMarkup(experience)}
                 </article>
             `;
         }
 
-        function buildDeleteModalMarkup(item) {
+        function buildDeleteModalMarkup(experience) {
             if (!CAN_DELETE_EXPERIENCE) return "";
 
-            const experience = item.fields;
-            const deleteUrl = experienceUrl(DELETE_EXPERIENCE_URL_TEMPLATE, item.pk);
+            const deleteUrl = experienceUrl(DELETE_EXPERIENCE_URL_TEMPLATE, experience.id);
             return `
                 <div
                     class="lightbox delete-confirmation"
-                    id="delete-experience-${escapeHtml(item.pk)}"
+                    id="delete-experience-${escapeHtml(experience.id)}"
                     role="dialog"
                     aria-modal="true"
-                    aria-labelledby="delete-experience-title-${escapeHtml(item.pk)}"
+                    aria-labelledby="delete-experience-title-${escapeHtml(experience.id)}"
                 >
-                    <a class="lightbox-backdrop" href="#experience-${escapeHtml(item.pk)}" aria-label="Cancel deletion"></a>
+                    <a class="lightbox-backdrop" href="#experience-${escapeHtml(experience.id)}" aria-label="Cancel deletion"></a>
                     <div class="lightbox-content delete-confirmation-content">
-                        <a class="lightbox-close" href="#experience-${escapeHtml(item.pk)}" aria-label="Cancel deletion">&times;</a>
+                        <a class="lightbox-close" href="#experience-${escapeHtml(experience.id)}" aria-label="Cancel deletion">&times;</a>
                         <p class="section-kicker">Confirm deletion</p>
-                        <h2 id="delete-experience-title-${escapeHtml(item.pk)}">Delete this experience?</h2>
+                        <h2 id="delete-experience-title-${escapeHtml(experience.id)}">Delete this experience?</h2>
                         <p>“${escapeHtml(experience.title)}” will be permanently removed from the portfolio timeline. This action cannot be undone.</p>
                         <div class="delete-confirmation-actions">
                             <form method="post" action="${escapeHtml(deleteUrl)}">
                                 <input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(CSRF_TOKEN)}">
                                 <button class="experience-delete-confirm" type="submit">Yes, delete it</button>
                             </form>
-                            <a class="certificate-secondary-action" href="#experience-${escapeHtml(item.pk)}">Keep experience</a>
+                            <a class="certificate-secondary-action" href="#experience-${escapeHtml(experience.id)}">Keep experience</a>
                         </div>
                     </div>
                 </div>
