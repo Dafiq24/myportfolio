@@ -729,6 +729,20 @@ Pengujian manual memastikan collection mengembalikan empat Experience dalam kont
 
 Verifikasi manual chapter ini berfokus pada read/search/detail. Matriks mutation keempat role, perubahan database pada request yang ditolak, validasi, star, method, status, serta CSRF session akan dibuktikan dengan `APITestCase` pada chapter pengujian. Pemisahan ini mencegah keberhasilan endpoint publik dianggap sebagai bukti authorization lengkap. Chapter berikutnya akan memindahkan read/search halaman Experience dari manual JSON Tugas 5 ke response serializer baru tanpa mengubah desain timeline.
 
+#### (20.18 - 20.34 11/2/2026)
+
+Chapter ketiga memindahkan read path halaman `/experience/` dari endpoint manual `main:get_experiences_json` menuju named route `api:experience-list` pada `/api/v1/experiences/`. Debounce 350 milidetik, `AbortController`, parameter `q` dan `category`, loading/error/empty state, retry, clear filters, result summary, serta sinkronisasi query pada address bar tetap dipertahankan. Dengan demikian, perubahan hanya mengganti sumber dan kontrak data, bukan perilaku pencarian yang sudah stabil sejak Tugas 5.
+
+Response lama membungkus setiap objek sebagai `item.pk` dan `item.fields`, sedangkan `ExperienceSerializer` mengembalikan object langsung dengan `experience.id`, `experience.title`, dan field lain pada level yang sama. Builder card timeline, kontrol star, action edit/delete, serta modal konfirmasi diubah bersama-sama agar seluruh consumer menggunakan UUID dan field langsung. Perubahan serentak diperlukan karena kontrol role ikut dibentuk dari data hasil fetch, walaupun endpoint mutation-nya belum dipindahkan pada chapter ini.
+
+Rendering tetap menganggap response API sebagai data yang tidak dipercaya. Title, organization, period, description, skills, UUID, dan jumlah star tetap melewati `escapeHtml` sebelum dimasukkan melalui `innerHTML`. `skill_list` yang dihitung serializer digunakan langsung untuk membentuk tag skills, sehingga browser tidak perlu memecah string comma-separated sendiri. Tidak ada penggunaan `safe` atau penyisipan teks response mentah.
+
+Pengujian browser memastikan empat Experience tampil dalam urutan yang sama, skills dan jumlah star tetap benar, pencarian `BEM`, filter `Internship`, kombinasi keduanya, clear filters, dan empty state bekerja tanpa document reload. Panel Network menunjukkan request baru menuju `/api/v1/experiences/` dan tidak lagi memanggil `/api/experiences/`. Anonymous, user biasa, Editor, dan superuser tetap melihat kontrol sesuai haknya karena boolean authorization dari server dan builder frontend tidak diubah.
+
+Regression assertion halaman diperbarui agar memeriksa named route DRF, sementara test endpoint manual lama tetap dipertahankan selama fallback mutation masih tersedia. Sebanyak 50 test pada `MainTest` dan `ExperienceWorkflowTest` lulus. System check tidak menemukan masalah dan `git diff --check` bersih selain informasi normalisasi LF ke CRLF pada working copy Windows.
+
+Create modal, halaman edit, form star, dan form delete masih memakai endpoint Tugas 5/Tugas 4 pada akhir chapter ini. Keadaan tersebut disengaja sebagai transitional architecture: read/search sudah memakai DRF, sedangkan mutation tetap memiliki fallback yang sebelumnya teruji. Chapter berikutnya akan mengubah create menjadi JSON `POST` dan menyediakan edit tanpa reload melalui `PATCH`, termasuk error 400/403, toast, CSRF, serta prefilled form untuk Editor dan superuser.
+
 
 ### Catatan Tugas 6
 
