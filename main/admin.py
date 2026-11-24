@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from main.models import Certification, Experience
+from main.models import Certification, Experience, Project
+
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ("title", "tech_stack", "project_url")
+    search_fields = ("title", "description", "tech_stack")
+    ordering = ("title",)
 
 
 @admin.register(Experience)

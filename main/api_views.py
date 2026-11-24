@@ -1,7 +1,10 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication
+from rest_framework.authentication import (
+    SessionAuthentication,
+    TokenAuthentication,
+)
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -10,16 +13,70 @@ from rest_framework.decorators import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from main.models import Certification, Experience
+from main.models import Certification, Experience, Project
 from main.permissions import (
     IsPortfolioOwnerOrEditorOrReadOnly,
     IsPortfolioOwnerOrReadOnly,
 )
-from main.serializers import CertificationSerializer, ExperienceSerializer
+from main.serializers import (
+    CertificationSerializer,
+    ExperienceSerializer,
+    ProjectSerializer,
+)
+
+
+API_AUTHENTICATION_CLASSES = [SessionAuthentication, TokenAuthentication]
+
+
+@api_view(["POST"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_list(request):
+    if request.method in ("GET", "HEAD"):
+        projects = Project.objects.order_by("title", "id")
+        serializer = ProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    serializer = ProjectSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
+@permission_classes([IsPortfolioOwnerOrReadOnly])
+def project_detail(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+
+    if request.method in ("GET", "HEAD"):
+        return Response(ProjectSerializer(project).data)
+
+    if request.method == "DELETE":
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    serializer = ProjectSerializer(
+        project,
+        data=request.data,
+        partial=request.method == "PATCH",
+    )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data)
+
+
+@api_view(["GET", "HEAD", "POST"])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_list(request):
     if request.method in ("GET", "HEAD"):
@@ -61,7 +118,7 @@ def experience_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsPortfolioOwnerOrEditorOrReadOnly])
 def experience_detail(request, experience_id):
     experience = get_object_or_404(
@@ -93,7 +150,7 @@ def experience_detail(request, experience_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsAuthenticated])
 def experience_star(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
@@ -111,7 +168,7 @@ def experience_star(request, experience_id):
 
 
 @api_view(["GET", "HEAD", "POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def certification_list(request):
     if request.method in ("GET", "HEAD"):
@@ -148,7 +205,7 @@ def certification_list(request):
 
 
 @api_view(["GET", "HEAD", "PUT", "PATCH", "DELETE"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsPortfolioOwnerOrReadOnly])
 def certification_detail(request, certification_id):
     certification = get_object_or_404(
@@ -180,7 +237,7 @@ def certification_detail(request, certification_id):
 
 
 @api_view(["POST"])
-@authentication_classes([SessionAuthentication])
+@authentication_classes(API_AUTHENTICATION_CLASSES)
 @permission_classes([IsAuthenticated])
 def certification_star(request, certification_id):
     certification = get_object_or_404(

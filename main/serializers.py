@@ -1,7 +1,41 @@
 from django.utils.html import strip_tags
 from rest_framework import serializers
 
-from main.models import Certification, Experience
+from main.models import Certification, Experience, Project
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = [
+            "id",
+            "title",
+            "description",
+            "tech_stack",
+            "project_url",
+            "project_image_url",
+        ]
+        read_only_fields = ["id"]
+
+    def validate_title(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Project title cannot be empty.")
+        return value
+
+    def validate_description(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError(
+                "Project description cannot be empty."
+            )
+        return value
+
+    def validate_tech_stack(self, value):
+        value = strip_tags(value).strip()
+        if not value:
+            raise serializers.ValidationError("Tech stack cannot be empty.")
+        return value
 
 
 class ExperienceSerializer(serializers.ModelSerializer):
